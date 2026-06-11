@@ -9,23 +9,27 @@ import { supabase } from '@/lib/supabase'
 
 interface NewErrorFormProps {
   area: OperationalArea
+  initialData?: any // <-- NUEVO: Recibe los datos si estamos editando
   onSuccess: (data?: any) => void
   onCancel: () => void
 }
 
-export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
+export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErrorFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const [preview, setPreview] = useState<string | null>(null)
-  const [steps, setSteps] = useState<string[]>([''])
   
-  const [title, setTitle] = useState('')
-  const [code, setCode] = useState('')
-  const [description, setDescription] = useState('')
+  // NUEVO: Los estados inician con los datos previos si existen
+  const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
+  const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
   
-  // Nuevos estados para Fase 1
-  const [prioridad, setPrioridad] = useState('Normal')
-  const [origen, setOrigen] = useState('Usuario')
-  const [solucionQuery, setSolucionQuery] = useState('')
+  const [title, setTitle] = useState(initialData?.title || '')
+  const [code, setCode] = useState(initialData?.code || '')
+  const [description, setDescription] = useState(initialData?.description || '')
+  
+  const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
+  const [origen, setOrigen] = useState(initialData?.origen || 'Usuario')
+  const [solucionQuery, setSolucionQuery] = useState(initialData?.solucion_query || '')
+
+  const isEditing = !!initialData?.id // Variable para saber si estamos en modo edición
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -58,20 +62,28 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
     e.preventDefault()
     setIsLoading(true)
     
-    const { data, error } = await supabase
-      .from('errors')
-      .insert([{
-        title,
-        code: code || null,
-        description,
-        steps,
-        screenshot_url: preview,
-        area: area,
-        prioridad,
-        origen,
-        solucion_query: solucionQuery
-      }])
-      .select()
+    const payload = {
+      title,
+      code: code || null,
+      description,
+      steps,
+      screenshot_url: preview,
+      area: area,
+      prioridad,
+      origen,
+      solucion_query: solucionQuery
+    }
+
+    let result;
+
+    // NUEVO: Lógica que decide si crear o actualizar en Supabase
+    if (isEditing) {
+      result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
+    } else {
+      result = await supabase.from('errors').insert([payload]).select()
+    }
+
+    const { data, error } = result;
 
     if (error) {
       console.error('Error al guardar en Supabase:', error)
@@ -109,7 +121,6 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
-      {/* Nuevos campos integrados */}
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Prioridad</label>
@@ -155,7 +166,10 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
 
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" className="flex-1" isLoading={isLoading}>Guardar error</Button>
+        {/* Cambia el texto del botón según si estamos editando o creando */}
+        <Button type="submit" className="flex-1" isLoading={isLoading}>
+          {isEditing ? 'Guardar Cambios' : 'Guardar error'}
+        </Button>
       </div>
     </form>
   )
