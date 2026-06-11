@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { NewErrorForm } from '@/components/forms/NewErrorForm'
+import { NewErrorForm } from '@/components/forms/NewErrorForm' // Ajusta si tu ruta es diferente
 import { useAuth } from '@/context/AuthContext'
 import { areaLabels } from '@/lib/utils'
 import { OperationalArea } from '@/lib/types'
@@ -12,9 +12,11 @@ interface HeaderProps {
   area: OperationalArea
   errorCount: number
   onAddError?: (data: any) => void
+  searchTerm?: string // <-- NUEVO: Recibe el texto
+  onSearchChange?: (value: string) => void // <-- NUEVO: Avisa cuando cambia
 }
 
-export function Header({ area, errorCount, onAddError }: HeaderProps) {
+export function Header({ area, errorCount, onAddError, searchTerm = '', onSearchChange }: HeaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const { isAdmin } = useAuth()
 
@@ -23,7 +25,6 @@ export function Header({ area, errorCount, onAddError }: HeaderProps) {
       <header className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">
-            {/* Si areaLabels[area] no existe, usamos el valor de area capitalizado */}
             {areaLabels[area] || area.charAt(0).toUpperCase() + area.slice(1)}
           </h1>
           <p className="mt-1 text-slate-500">
@@ -32,10 +33,13 @@ export function Header({ area, errorCount, onAddError }: HeaderProps) {
         </div>
 
         <div className="flex items-center gap-3">
+          {/* --- TU BUSCADOR CONECTADO --- */}
           <div className="relative">
             <input
               type="text"
               placeholder="Buscar errores..."
+              value={searchTerm}
+              onChange={(e) => onSearchChange?.(e.target.value)}
               className="w-64 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20 focus:border-exodus-500"
             />
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">

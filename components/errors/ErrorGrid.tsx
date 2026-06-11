@@ -5,21 +5,17 @@ import { ErrorCard } from './ErrorCard'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 
-export function ErrorGrid({ errors, onDelete, onEdit }: any) {
+export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
-  
-  // --- NUEVO: Estado para el texto del buscador ---
-  const [searchTerm, setSearchTerm] = useState('')
 
-  // --- NUEVO: Primero filtramos por lo que escribes en el buscador ---
+  // Filtramos por el texto que viene del Header
   const erroresFiltrados = errors.filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.code?.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Luego los separamos por prioridad (usando la lista ya filtrada)
   const erroresComunes = erroresFiltrados.filter((e: any) => e.prioridad === 'Común')
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
@@ -28,23 +24,7 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
     <>
       <div className="space-y-8">
         
-        {/* --- NUEVO: Barra de Búsqueda --- */}
-        {errors.length > 0 && (
-          <div className="relative max-w-md w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-slate-400">🔍</span>
-            </div>
-            <input
-              type="text"
-              placeholder="Buscar por título, código o descripción..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm text-slate-700"
-            />
-          </div>
-        )}
-
-        {/* --- RESULTADOS VACÍOS DEL BUSCADOR --- */}
+        {/* MENSAJE DE RESULTADOS VACÍOS */}
         {searchTerm && erroresFiltrados.length === 0 && (
           <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
             No se encontraron tickets que coincidan con "<strong>{searchTerm}</strong>".
@@ -56,12 +36,7 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
             <h2 className="text-xl font-bold mb-4">Comunes</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresComunes.map((error: any) => (
-                <ErrorCard 
-                  key={error.id} 
-                  error={error} 
-                  onClick={() => setSelectedError(error)} 
-                  onDelete={onDelete}
-                />
+                <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
             </div>
           </div>
@@ -72,12 +47,7 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
             <h2 className="text-xl font-bold mb-4">Normales</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresNormales.map((error: any) => (
-                <ErrorCard 
-                  key={error.id} 
-                  error={error} 
-                  onClick={() => setSelectedError(error)} 
-                  onDelete={onDelete}
-                />
+                <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
             </div>
           </div>
@@ -88,12 +58,7 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
             <h2 className="text-xl font-bold mb-4">Raros</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresRaros.map((error: any) => (
-                <ErrorCard 
-                  key={error.id} 
-                  error={error} 
-                  onClick={() => setSelectedError(error)} 
-                  onDelete={onDelete}
-                />
+                <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
             </div>
           </div>
@@ -101,7 +66,6 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
 
       </div>
 
-      {/* --- MODAL (Intacto) --- */}
       <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); }} title={selectedError?.title || ''}>
         {selectedError && !isConfirming && (
           <div className="space-y-4">

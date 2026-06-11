@@ -4,14 +4,15 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ErrorGrid } from '@/components/errors/ErrorGrid'
 import { Header } from '@/components/layout/Header'
-import { Modal } from '@/components/ui/Modal' // <-- NUEVO: Importamos tu Modal
-import { NewErrorForm } from '@/components/forms/NewErrorForm' // <-- Verifica que esta ruta apunte a tu formulario
+import { Modal } from '@/components/ui/Modal'
+import { NewErrorForm } from '@/components/forms/NewErrorForm'
 
 export function ErrorAreaPage({ areaName }: { areaName: string }) {
   const [errors, setErrors] = useState<any[]>([])
-  
-  // --- NUEVO: Estado para saber qué ticket estamos editando ---
   const [editingError, setEditingError] = useState<any | null>(null)
+  
+  // --- NUEVO: Aquí guardamos lo que escribes en el buscador ---
+  const [searchTerm, setSearchTerm] = useState('')
 
   const fetchErrors = async () => {
     const { data } = await supabase
@@ -32,22 +33,29 @@ export function ErrorAreaPage({ areaName }: { areaName: string }) {
     if (error) {
       alert("No se pudo eliminar el ticket: " + error.message)
     } else {
-      fetchErrors() // Recarga la lista automáticamente
+      fetchErrors()
     }
   }
 
   return (
     <div>
-      <Header area={areaName as any} errorCount={errors.length} onAddError={fetchErrors} />
+      {/* Pasamos el searchTerm y onSearchChange al Header */}
+      <Header 
+        area={areaName as any} 
+        errorCount={errors.length} 
+        onAddError={fetchErrors} 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
       
-      {/* Pasamos handleDelete y el NUEVO onEdit al Grid */}
+      {/* Pasamos el mismo searchTerm al Grid para que filtre */}
       <ErrorGrid 
         errors={errors} 
         onDelete={handleDelete} 
         onEdit={(error: any) => setEditingError(error)} 
+        searchTerm={searchTerm}
       />
 
-      {/* --- NUEVO: Modal flotante exclusivo para la edición --- */}
       <Modal 
         isOpen={!!editingError} 
         onClose={() => setEditingError(null)} 
@@ -56,10 +64,10 @@ export function ErrorAreaPage({ areaName }: { areaName: string }) {
         {editingError && (
           <NewErrorForm 
             area={areaName as any} 
-            initialData={editingError} // Le pasamos los datos del ticket al form
+            initialData={editingError} 
             onSuccess={() => {
-              setEditingError(null) // Cerramos el modal
-              fetchErrors() // Recargamos los tickets para ver los cambios
+              setEditingError(null)
+              fetchErrors()
             }}
             onCancel={() => setEditingError(null)} 
           />
