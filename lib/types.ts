@@ -7,7 +7,7 @@ export interface User {
   department: OperationalArea
 }
 
-export type OperationalArea = 'credito' | 'pinpad' | 'embarques' | 'movil' | 'admin'
+export type OperationalArea =  'exodus' | 'almacen' | 'credito' | 'pinpad' | 'embarques' | 'movil' | 'admin'
 
 export interface ErrorSolution {
   id: string
