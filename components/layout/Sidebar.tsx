@@ -23,7 +23,7 @@ export function Sidebar() {
             </div>
             <div>
               <h1 className="text-lg font-semibold text-slate-900">Exodus</h1>
-              <p className="text-xs text-slate-500">Knowledge Base</p>
+              <p className="text-xs text-slate-500">Exodus-Cae</p>
             </div>
           </div>
         </div>
