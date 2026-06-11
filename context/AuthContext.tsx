@@ -15,7 +15,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 const mockUsers: Record<string, User> = {
   'admin@exodus.com': {
     id: '1',
-    name: 'Carlos Admin',
+    name: 'Exodus Admin',
     email: 'admin@exodus.com',
     role: 'admin',
     department: 'credito',
