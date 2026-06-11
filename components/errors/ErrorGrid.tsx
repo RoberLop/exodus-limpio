@@ -9,17 +9,63 @@ export function ErrorGrid({ errors, onDelete, onEdit }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
 
+  // Filtramos los tickets por prioridad
+  const erroresComunes = errors.filter((e: any) => e.prioridad === 'Común')
+  const erroresNormales = errors.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
+  const erroresRaros = errors.filter((e: any) => e.prioridad === 'Raro')
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {errors.map((error: any) => (
-          <ErrorCard 
-            key={error.id} 
-            error={error} 
-            onClick={() => setSelectedError(error)} 
-            onDelete={onDelete}
-          />
-        ))}
+      <div className="space-y-12">
+        
+        {erroresComunes.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Comunes</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {erroresComunes.map((error: any) => (
+                <ErrorCard 
+                  key={error.id} 
+                  error={error} 
+                  onClick={() => setSelectedError(error)} 
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {erroresNormales.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Normales</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {erroresNormales.map((error: any) => (
+                <ErrorCard 
+                  key={error.id} 
+                  error={error} 
+                  onClick={() => setSelectedError(error)} 
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {erroresRaros.length > 0 && (
+          <div>
+            <h2 className="text-xl font-bold mb-4">Raros</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {erroresRaros.map((error: any) => (
+                <ErrorCard 
+                  key={error.id} 
+                  error={error} 
+                  onClick={() => setSelectedError(error)} 
+                  onDelete={onDelete}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); }} title={selectedError?.title || ''}>
