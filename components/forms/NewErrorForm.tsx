@@ -21,6 +21,11 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
   const [title, setTitle] = useState('')
   const [code, setCode] = useState('')
   const [description, setDescription] = useState('')
+  
+  // Nuevos estados para Fase 1
+  const [prioridad, setPrioridad] = useState('Normal')
+  const [origen, setOrigen] = useState('Usuario')
+  const [solucionQuery, setSolucionQuery] = useState('')
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -53,7 +58,6 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
     e.preventDefault()
     setIsLoading(true)
     
-    // Aquí está la conexión intacta con los nombres de columna correctos
     const { data, error } = await supabase
       .from('errors')
       .insert([{
@@ -61,8 +65,11 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
         code: code || null,
         description,
         steps,
-        screenshot_url: preview, // columna en Supabase
-        area: area // esto asegura que se guarde en la sección correcta
+        screenshot_url: preview,
+        area: area,
+        prioridad,
+        origen,
+        solucion_query: solucionQuery
       }])
       .select()
 
@@ -78,7 +85,6 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* ... Tu diseño original permanece igual ... */}
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">Captura del error</label>
         <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer hover:border-exodus-400 hover:bg-exodus-50/50', preview ? 'border-exodus-300 bg-exodus-50' : 'border-slate-200')}>
@@ -102,11 +108,36 @@ export function NewErrorForm({ area, onSuccess, onCancel }: NewErrorFormProps) {
       </div>
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
+      
+      {/* Nuevos campos integrados */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Prioridad</label>
+          <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
+            <option value="Común">Común</option>
+            <option value="Normal">Normal</option>
+            <option value="Raro">Raro</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Origen</label>
+          <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
+            <option value="Usuario">Usuario</option>
+            <option value="Sistemas">Sistemas</option>
+          </select>
+        </div>
+      </div>
+
       <Input label="Código de error" placeholder="Ej: ERR_500" value={code} onChange={(e: any) => setCode(e.target.value)} />
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">Descripción breve</label>
         <textarea rows={2} placeholder="Describe brevemente cuándo ocurre..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={description} onChange={(e) => setDescription(e.target.value)} />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">Query de Solución (Opcional)</label>
+        <textarea rows={3} placeholder="Pega aquí tu query .sql o pasos técnicos..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
       </div>
 
       <div>
