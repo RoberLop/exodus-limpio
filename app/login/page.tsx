@@ -1,0 +1,92 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { useAuth } from '@/context/AuthContext'
+
+export default function LoginPage() {
+  const router = useRouter()
+  const { login } = useAuth()
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setIsLoading(true)
+
+    const success = await login(email, password)
+    
+    if (success) {
+      router.push('/dashboard/credito')
+    } else {
+      setError('Credenciales inválidas')
+    }
+    
+    setIsLoading(false)
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-xl shadow-exodus-500/30">
+            <span className="text-white font-bold text-3xl">E</span>
+          </div>
+          <h1 className="mt-4 text-2xl font-bold text-slate-900">Exodus KB</h1>
+          <p className="mt-1 text-slate-500">Base de conocimiento interna</p>
+        </div>
+
+        {/* Login form */}
+        <div className="glass rounded-3xl p-8">
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <Input
+              label="Correo electrónico"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="tu@empresa.com"
+              required
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
+                </svg>
+              }
+            />
+
+            <Input
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+              error={error}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+              }
+            />
+
+            <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+              Iniciar sesión
+            </Button>
+          </form>
+
+          {/* Demo hint */}
+          <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-100">
+            <p className="text-xs text-slate-500 text-center">
+              <span className="font-medium">Demo:</span> admin@exodus.com o user@exodus.com
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
