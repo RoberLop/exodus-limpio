@@ -8,9 +8,13 @@ import { Button } from '@/components/ui/Button'
 export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
+  
+  // --- NUEVOS ESTADOS PARA LA CONTRASEÑA ---
+  const [deletePassword, setDeletePassword] = useState('')
+  const [passwordError, setPasswordError] = useState(false)
 
   // Filtramos por el texto que viene del Header
-  const erroresFiltrados = errors.filter((e: any) => 
+  const erroresFiltrados = (errors || []).filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.code?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -20,11 +24,24 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
 
+  // --- FUNCIÓN PARA VALIDAR Y BORRAR ---
+  const handleConfirmDelete = () => {
+    // CONTRASEÑA ACTUALIZADA A 3x0du5
+    if (deletePassword === '3x0du5') { 
+      onDelete(selectedError.id);
+      setSelectedError(null);
+      setIsConfirming(false);
+      setDeletePassword('');
+      setPasswordError(false);
+    } else {
+      setPasswordError(true);
+    }
+  }
+
   return (
     <>
       <div className="space-y-8">
         
-        {/* MENSAJE DE RESULTADOS VACÍOS */}
         {searchTerm && erroresFiltrados.length === 0 && (
           <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
             No se encontraron tickets que coincidan con "<strong>{searchTerm}</strong>".
@@ -66,7 +83,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
       </div>
 
-      <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); }} title={selectedError?.title || ''}>
+      <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); setDeletePassword(''); setPasswordError(false); }} title={selectedError?.title || ''}>
         {selectedError && !isConfirming && (
           <div className="space-y-4">
             
@@ -128,18 +145,44 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
         
+        {/* --- MODAL DE CONFIRMACIÓN CON CONTRASEÑA --- */}
         {isConfirming && (
-          <div className="p-8 text-center space-y-4">
-            <h3 className="text-lg font-bold">¿Estás seguro de eliminar este ticket?</h3>
+          <div className="p-6 text-center space-y-4">
+            <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
+            <p className="text-sm text-slate-500">Ingresa la contraseña maestra para eliminar este ticket.</p>
+            
+            <div className="max-w-xs mx-auto mt-4">
+              <input
+                type="password"
+                placeholder="Contraseña..."
+                value={deletePassword}
+                onChange={(e) => {
+                  setDeletePassword(e.target.value)
+                  setPasswordError(false)
+                }}
+                className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${passwordError ? 'border-red-500' : 'border-slate-200'}`}
+              />
+              {passwordError && (
+                <p className="text-red-500 text-xs mt-2 font-bold animate-pulse">
+                  Contraseña incorrecta
+                </p>
+              )}
+            </div>
+
             <div className="flex gap-3 justify-center mt-6">
-              <Button variant="secondary" onClick={() => setIsConfirming(false)}>Cancelar</Button>
+              <Button 
+                variant="secondary" 
+                onClick={() => { 
+                  setIsConfirming(false); 
+                  setDeletePassword(''); 
+                  setPasswordError(false); 
+                }}
+              >
+                Cancelar
+              </Button>
               <Button 
                 className="bg-red-600 hover:bg-red-700" 
-                onClick={() => { 
-                  onDelete(selectedError.id); 
-                  setSelectedError(null); 
-                  setIsConfirming(false); 
-                }}
+                onClick={handleConfirmDelete}
               >
                 Sí, borrar
               </Button>
