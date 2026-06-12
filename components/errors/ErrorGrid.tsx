@@ -85,63 +85,80 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
       <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); setDeletePassword(''); setPasswordError(false); }} title={selectedError?.title || ''}>
         {selectedError && !isConfirming && (
-          <div className="space-y-4">
+          // --- DISEÑO DE DOS COLUMNAS ESTILO CREDENCIAL ---
+          <div className="flex flex-col md:flex-row gap-6">
             
-            <div className="flex flex-wrap gap-2 mb-2">
-              {selectedError.prioridad && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">
-                  {selectedError.prioridad}
-                </span>
-              )}
-              {selectedError.origen && (
-                <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-                  {selectedError.origen}
-                </span>
-              )}
-            </div>
-
-            {selectedError.screenshotUrl && (
-              <img src={selectedError.screenshotUrl} className="w-full rounded-lg shadow-lg" />
-            )}
-            
-            <p className="text-slate-600">{selectedError.description}</p>
-            
-            <div className="bg-slate-900 p-4 rounded-xl text-white">
-              <h4 className="font-bold mb-2">Pasos de Solución:</h4>
-              {(selectedError.steps || []).map((step: string, i: number) => (
-                <p key={i} className="text-sm text-slate-200">{i + 1}. {step}</p>
-              ))}
-            </div>
-
-            {selectedError.solucion_query && (
-              <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
-                <h4 className="font-bold text-slate-300 mb-2 text-sm flex items-center gap-2">
-                  <span>💻</span> Query / Técnico:
-                </h4>
-                <pre className="text-emerald-400 font-mono text-xs overflow-x-auto whitespace-pre-wrap">
-                  {selectedError.solucion_query}
-                </pre>
+            {/* --- COLUMNA IZQUIERDA: Etiquetas, Foto y Query --- */}
+            <div className="w-full md:w-1/2 space-y-4">
+              <div className="flex flex-wrap gap-2">
+                {selectedError.prioridad && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">
+                    {selectedError.prioridad}
+                  </span>
+                )}
+                {selectedError.origen && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    {selectedError.origen}
+                  </span>
+                )}
               </div>
-            )}
-            
-            <div className="flex justify-between items-center pt-4 mt-2 border-t border-slate-100">
-              <button 
-                onClick={() => {
-                  if (onEdit) onEdit(selectedError);
-                  setSelectedError(null);
-                }} 
-                className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
-              >
-                ✏️ Editar Ticket
-              </button>
 
-              <button 
-                onClick={() => setIsConfirming(true)} 
-                className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
-              >
-                Eliminar Ticket
-              </button>
+              {selectedError.screenshotUrl && (
+                <img src={selectedError.screenshotUrl} className="w-full rounded-lg shadow-sm border border-slate-200" />
+              )}
+
+              {/* Bloque de Query con Scroll Interno */}
+              {selectedError.solucion_query && (
+                <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
+                  <h4 className="font-bold text-slate-300 mb-2 text-sm flex items-center gap-2">
+                    <span>💻</span> Query / Técnico:
+                  </h4>
+                  {/* max-h-40 limita la altura y overflow-y-auto agrega la barra de scroll */}
+                  <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                    <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all">
+                      {selectedError.solucion_query}
+                    </pre>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* --- COLUMNA DERECHA: Descripción, Pasos y Botones --- */}
+            <div className="w-full md:w-1/2 flex flex-col space-y-4">
+              <p className="text-slate-600 text-sm">{selectedError.description}</p>
+              
+              <div className="bg-slate-900 p-4 rounded-xl text-white flex-1">
+                <h4 className="font-bold mb-3 text-sm text-blue-400">Pasos de Solución:</h4>
+                <div className="space-y-2">
+                  {(selectedError.steps || []).map((step: string, i: number) => (
+                    <p key={i} className="text-sm text-slate-200 leading-relaxed">
+                      <span className="font-bold text-slate-400 mr-1">{i + 1}.</span> {step}
+                    </p>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botones de acción pegados abajo */}
+              <div className="flex justify-between items-center pt-2 mt-auto border-t border-slate-100">
+                <button 
+                  onClick={() => {
+                    if (onEdit) onEdit(selectedError);
+                    setSelectedError(null);
+                  }} 
+                  className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
+                >
+                  ✏️ Editar Ticket
+                </button>
+
+                <button 
+                  onClick={() => setIsConfirming(true)} 
+                  className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
+                >
+                  Eliminar Ticket
+                </button>
+              </div>
+            </div>
+
           </div>
         )}
         
