@@ -9,11 +9,13 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
   
-  // --- NUEVOS ESTADOS PARA LA CONTRASEÑA ---
   const [deletePassword, setDeletePassword] = useState('')
   const [passwordError, setPasswordError] = useState(false)
 
-  // Filtramos por el texto que viene del Header
+  // --- NUEVOS ESTADOS PARA AMPLIAR Y COPIAR LA QUERY ---
+  const [isQueryExpanded, setIsQueryExpanded] = useState(false)
+  const [isCopied, setIsCopied] = useState(false)
+
   const erroresFiltrados = (errors || []).filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
     e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -24,18 +26,30 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
 
-  // --- FUNCIÓN PARA VALIDAR Y BORRAR ---
   const handleConfirmDelete = () => {
-    // CONTRASEÑA ACTUALIZADA A 3x0du5
     if (deletePassword === '3x0du5') { 
       onDelete(selectedError.id);
-      setSelectedError(null);
-      setIsConfirming(false);
-      setDeletePassword('');
-      setPasswordError(false);
+      handleCloseModal();
     } else {
       setPasswordError(true);
     }
+  }
+
+  // Función para cerrar y resetear todo
+  const handleCloseModal = () => {
+    setSelectedError(null);
+    setIsConfirming(false);
+    setDeletePassword('');
+    setPasswordError(false);
+    setIsQueryExpanded(false);
+    setIsCopied(false);
+  }
+
+  // Función mágica para copiar
+  const handleCopyQuery = (query: string) => {
+    navigator.clipboard.writeText(query);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000); // Vuelve a la normalidad en 2 segundos
   }
 
   return (
@@ -83,12 +97,12 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
       </div>
 
-      <Modal isOpen={!!selectedError} onClose={() => { setSelectedError(null); setIsConfirming(false); setDeletePassword(''); setPasswordError(false); }} title={selectedError?.title || ''}>
-        {selectedError && !isConfirming && (
-          // --- DISEÑO DE DOS COLUMNAS ESTILO CREDENCIAL ---
-          <div className="flex flex-col md:flex-row gap-6">
+      <Modal isOpen={!!selectedError} onClose={handleCloseModal} title={selectedError?.title || ''}>
+        
+        {/* === VISTA NORMAL DE DOS COLUMNAS === */}
+        {selectedError && !isConfirming && !isQueryExpanded && (
+          <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-200">
             
-            {/* --- COLUMNA IZQUIERDA: Etiquetas, Foto y Query --- */}
             <div className="w-full md:w-1/2 space-y-4">
               <div className="flex flex-wrap gap-2">
                 {selectedError.prioridad && (
@@ -107,23 +121,39 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 <img src={selectedError.screenshotUrl} className="w-full rounded-lg shadow-sm border border-slate-200" />
               )}
 
-              {/* Bloque de Query con Scroll Interno */}
+              {/* Cajita de Query Recortada */}
               {selectedError.solucion_query && (
                 <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
-                  <h4 className="font-bold text-slate-300 mb-2 text-sm flex items-center gap-2">
-                    <span>💻</span> Query / Técnico:
-                  </h4>
-                  {/* max-h-40 limita la altura y overflow-y-auto agrega la barra de scroll */}
-                  <div className="max-h-48 overflow-y-auto pr-2 custom-scrollbar">
-                    <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all">
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="font-bold text-slate-300 text-sm flex items-center gap-2">
+                      <span>💻</span> Query / Técnico
+                    </h4>
+                    <button 
+                      onClick={() => setIsQueryExpanded(true)}
+                      className="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors px-2 py-1 rounded flex items-center gap-1 text-xs font-bold"
+                    >
+                      ⛶ Ampliar
+                    </button>
+                  </div>
+                  
+                  <div 
+                    className="relative max-h-24 overflow-hidden cursor-pointer group rounded"
+                    onClick={() => setIsQueryExpanded(true)}
+                  >
+                    <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all opacity-70 group-hover:opacity-100 transition-opacity">
                       {selectedError.solucion_query}
                     </pre>
+                    {/* Efecto de desvanecimiento para indicar que hay más texto */}
+                    <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0f172a] to-transparent flex items-end justify-center pb-1">
+                      <span className="text-xs text-blue-400 font-bold bg-[#0f172a] px-3 py-1 rounded-full border border-slate-700 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
+                        Ver Query completa
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* --- COLUMNA DERECHA: Descripción, Pasos y Botones --- */}
             <div className="w-full md:w-1/2 flex flex-col space-y-4">
               <p className="text-slate-600 text-sm">{selectedError.description}</p>
               
@@ -138,12 +168,11 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 </div>
               </div>
 
-              {/* Botones de acción pegados abajo */}
               <div className="flex justify-between items-center pt-2 mt-auto border-t border-slate-100">
                 <button 
                   onClick={() => {
                     if (onEdit) onEdit(selectedError);
-                    setSelectedError(null);
+                    handleCloseModal();
                   }} 
                   className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
                 >
@@ -161,8 +190,39 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
           </div>
         )}
+
+        {/* === VISTA EXPANDIDA DE LA QUERY === */}
+        {selectedError && !isConfirming && isQueryExpanded && (
+          <div className="space-y-4 animate-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">
+                <span>💻</span> Vista Completa de Query
+              </h3>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleCopyQuery(selectedError.solucion_query)}
+                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${isCopied ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
+                >
+                  {isCopied ? '✅ ¡Copiado!' : '📋 Copiar Query'}
+                </button>
+                <button 
+                  onClick={() => setIsQueryExpanded(false)}
+                  className="px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-lg text-sm font-bold transition-colors shadow-sm"
+                >
+                  Volver atrás
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-[#0f172a] p-6 rounded-xl border border-slate-700 max-h-[60vh] overflow-y-auto custom-scrollbar shadow-inner">
+              <pre className="text-emerald-400 font-mono text-sm whitespace-pre-wrap break-all leading-relaxed">
+                {selectedError.solucion_query}
+              </pre>
+            </div>
+          </div>
+        )}
         
-        {/* --- MODAL DE CONFIRMACIÓN CON CONTRASEÑA --- */}
+        {/* === MODAL DE CONFIRMACIÓN === */}
         {isConfirming && (
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
@@ -187,20 +247,10 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             </div>
 
             <div className="flex gap-3 justify-center mt-6">
-              <Button 
-                variant="secondary" 
-                onClick={() => { 
-                  setIsConfirming(false); 
-                  setDeletePassword(''); 
-                  setPasswordError(false); 
-                }}
-              >
+              <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setPasswordError(false); }}>
                 Cancelar
               </Button>
-              <Button 
-                className="bg-red-600 hover:bg-red-700" 
-                onClick={handleConfirmDelete}
-              >
+              <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete}>
                 Sí, borrar
               </Button>
             </div>
