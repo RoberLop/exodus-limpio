@@ -17,7 +17,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [isQueryExpanded, setIsQueryExpanded] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  // Extraemos el usuario actual para el log de eliminación
   const { user } = useAuth()
 
   const erroresFiltrados = (errors || []).filter((e: any) => 
@@ -30,10 +29,22 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
 
+  // --- NUEVA FUNCIÓN: Formatear la fecha y hora para el Ticket ---
+  const formatFecha = (isoString: string) => {
+    if (!isoString) return ''
+    const fecha = new Date(isoString)
+    return fecha.toLocaleString('es-MX', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
+
   const handleConfirmDelete = async () => {
     if (deletePassword === '3x0du5') { 
-      
-      // Registro en la caja negra (Audit Logs)
       if (selectedError) {
         await supabase.from('audit_logs').insert([{
           accion: 'ELIMINADO',
@@ -179,15 +190,19 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
               <div className="flex flex-col gap-3 pt-3 mt-auto border-t border-slate-100">
                 
-                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                {/* --- NUEVO: Logs con Nombre, Fecha y Hora --- */}
+                <div className="flex flex-col gap-1 text-xs text-slate-400">
                   {selectedError.creado_por && (
-                    <span>Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong></span>
+                    <span>
+                      Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong> 
+                      {selectedError.created_at && ` el ${formatFecha(selectedError.created_at)}`}
+                    </span>
                   )}
                   {selectedError.modificado_por && (
-                    <>
-                      <span className="text-slate-300">•</span>
-                      <span>Editado por: <strong className="text-slate-500">{selectedError.modificado_por}</strong></span>
-                    </>
+                    <span>
+                      Editado por: <strong className="text-slate-500">{selectedError.modificado_por}</strong>
+                      {selectedError.updated_at && ` el ${formatFecha(selectedError.updated_at)}`}
+                    </span>
                   )}
                 </div>
 
