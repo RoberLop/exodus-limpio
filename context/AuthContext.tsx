@@ -14,7 +14,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 // --- LISTA DE USUARIOS DEL EQUIPO CAE ---
 const mockUsers: Record<string, User> = {
   'admin cae': { id: '1', name: 'ADMIN CAE', email: 'admin@exodus.com', role: 'admin', department: 'sistemas' },
-  'sergio cae': { id: '2', name: 'Sergio CAE', email: 'sergio@exodus.com', role: 'user', department: 'sistemas' },
+  'sergio cae': { id: '2', name: 'Sergio CAE', email: 'sergio@exodus.com', role: 'admin', department: 'sistemas' },
   'fabian cae': { id: '3', name: 'Fabian CAE', email: 'fabian@exodus.com', role: 'user', department: 'sistemas' },
   'luis cae': { id: '4', name: 'Luis CAE', email: 'luis@exodus.com', role: 'user', department: 'sistemas' },
   'erick cae': { id: '5', name: 'Erick CAE', email: 'erick@exodus.com', role: 'user', department: 'sistemas' },

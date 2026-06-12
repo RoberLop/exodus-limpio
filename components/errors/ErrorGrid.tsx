@@ -44,7 +44,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   }
 
   const handleConfirmDelete = async () => {
-    if (deletePassword === '3x0du5') { 
+    if (deletePassword === 'isAdmin02') { 
       if (selectedError) {
         await supabase.from('audit_logs').insert([{
           accion: 'ELIMINADO',
