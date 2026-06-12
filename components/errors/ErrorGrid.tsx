@@ -176,7 +176,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                   }} 
                   className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
                 >
-                  ✏️ Editar Ticket
+                   Editar Ticket
                 </button>
 
                 <button 
@@ -196,14 +196,14 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           <div className="space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <span>💻</span> Vista Completa de Query
+                <span></span> Vista Completa de Query
               </h3>
               <div className="flex gap-2">
                 <button 
                   onClick={() => handleCopyQuery(selectedError.solucion_query)}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${isCopied ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
                 >
-                  {isCopied ? '✅ ¡Copiado!' : '📋 Copiar Query'}
+                  {isCopied ? '¡Copiado!' : 'Copiar Query'}
                 </button>
                 <button 
                   onClick={() => setIsQueryExpanded(false)}
