@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { OperationalArea } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext' // --- NUEVO: Importamos el contexto de autenticación ---
 
 interface NewErrorFormProps {
   area: OperationalArea
@@ -16,6 +17,9 @@ interface NewErrorFormProps {
 
 export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErrorFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  
+  // --- NUEVO: Obtenemos al usuario que tiene la sesión iniciada ---
+  const { user } = useAuth()
   
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
   const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
@@ -63,7 +67,8 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     e.preventDefault()
     setIsLoading(true)
     
-    const payload = {
+    // --- NUEVO: Preparamos el payload base ---
+    const payload: any = {
       title,
       code: code || null,
       description,
@@ -72,7 +77,15 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       area: currentArea, 
       prioridad,
       origen,
-      solucion_query: solucionQuery
+      solucion_query: solucionQuery,
+    }
+
+    // --- NUEVO: Inyectamos el log de quién lo hizo ---
+    if (isEditing) {
+      payload.modificado_por = user?.name || 'Usuario Desconocido' // Si está editando
+    } else {
+      payload.creado_por = user?.name || 'Usuario Desconocido' // Si es nuevo
+      payload.modificado_por = null // Aseguramos que al crearse no tenga historial de edición
     }
 
     let result;
@@ -121,7 +134,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
-      {/* --- NUEVO: Convertimos el Grid a 3 columnas para incluir el Área --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Área Operativa</label>

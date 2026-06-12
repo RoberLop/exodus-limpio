@@ -126,13 +126,13 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-bold text-slate-300 text-sm flex items-center gap-2">
-                      <span>💻</span> Query / Técnico
+                      Query / Técnico
                     </h4>
                     <button 
                       onClick={() => setIsQueryExpanded(true)}
                       className="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors px-2 py-1 rounded flex items-center gap-1 text-xs font-bold"
                     >
-                      ⛶ Ampliar
+                      Ampliar
                     </button>
                   </div>
                   
@@ -168,23 +168,41 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center pt-2 mt-auto border-t border-slate-100">
-                <button 
-                  onClick={() => {
-                    if (onEdit) onEdit(selectedError);
-                    handleCloseModal();
-                  }} 
-                  className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
-                >
-                   Editar Ticket
-                </button>
+              {/* Contenedor inferior: Logs + Botones */}
+              <div className="flex flex-col gap-3 pt-3 mt-auto border-t border-slate-100">
+                
+                {/* --- Registro de Logs --- */}
+                <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+                  {selectedError.creado_por && (
+                    <span>Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong></span>
+                  )}
+                  {selectedError.modificado_por && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span>Editado por: <strong className="text-slate-500">{selectedError.modificado_por}</strong></span>
+                    </>
+                  )}
+                </div>
 
-                <button 
-                  onClick={() => setIsConfirming(true)} 
-                  className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
-                >
-                  Eliminar Ticket
-                </button>
+                {/* Botones de Acción */}
+                <div className="flex justify-between items-center">
+                  <button 
+                    onClick={() => {
+                      if (onEdit) onEdit(selectedError);
+                      handleCloseModal();
+                    }} 
+                    className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
+                  >
+                    Editar Ticket
+                  </button>
+
+                  <button 
+                    onClick={() => setIsConfirming(true)} 
+                    className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
+                  >
+                    Eliminar Ticket
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -196,7 +214,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           <div className="space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
               <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                <span></span> Vista Completa de Query
+                Vista Completa de Query
               </h3>
               <div className="flex gap-2">
                 <button 
