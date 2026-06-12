@@ -7,7 +7,6 @@ import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 
-// Separamos las áreas para poder estructurar el menú
 const mainAreas: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
 const exodusSubAreas: OperationalArea[] = [
   'exodus_mostradores', 
@@ -22,8 +21,6 @@ const exodusSubAreas: OperationalArea[] = [
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
-  
-  // Estado para controlar si la carpeta Exodus está abierta o cerrada
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
   return (
@@ -46,7 +43,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
           
-          {/* Categoría Global */}
+          {/* Soluciones Globales */}
           <Link
             href="/dashboard/global"
             className={cn(
@@ -74,14 +71,18 @@ export function Sidebar() {
                 <span className="text-lg">{isExodusOpen ? '📂' : '📁'}</span>
                 <span>Exodus</span>
               </div>
-              <span className={`text-xs transition-transform duration-200 ${isExodusOpen ? 'rotate-180' : ''}`}>
-                ▼
-              </span>
+              {/* FLECHA SVG ELEGANTE */}
+              <svg 
+                className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isExodusOpen ? "rotate-180" : "")} 
+                fill="none" viewBox="0 0 24 24" stroke="currentColor"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
             </button>
 
-            {/* Subcategorías de Exodus (Solo se muestran si isExodusOpen es true) */}
+            {/* Subcategorías de Exodus */}
             {isExodusOpen && (
-              <div className="mt-1 mb-2 space-y-1 pl-8 border-l-2 border-slate-200/50 ml-4">
+              <div className="mt-1 mb-2 space-y-1 pl-4 border-l-2 border-slate-200/50 ml-5">
                 {exodusSubAreas.map((area) => {
                   const isActive = pathname.includes(`/dashboard/${area}`)
                   return (
@@ -96,8 +97,8 @@ export function Sidebar() {
                           : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
                       )}
                     >
-                      <span>{areaLabels[area]}</span>
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500" />}
+                      <span className="truncate">{areaLabels[area]}</span>
+                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500 flex-shrink-0" />}
                     </Link>
                   )
                 })}

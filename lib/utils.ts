@@ -6,15 +6,15 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const areaLabels: Record<string, string> = {
-  global: 'Categoría Global',
+  global: 'Soluciones Globales',
   exodus: 'Exodus',
-  exodus_mostradores: 'Mostradores',
-  exodus_sucursales: 'Sucursales',
-  exodus_sucursales_sic: 'Sucursales SIC',
-  exodus_erp_profesional: 'ERP Profesional',
-  exodus_profesional_2013: 'Profesional 2013',
-  exodus_embarques: 'Embarques (Exodus)',
-  exodus_epico: 'Épico',
+  exodus_mostradores: 'Exodus Mostradores',
+  exodus_sucursales: 'Exodus Sucursales',
+  exodus_sucursales_sic: 'Exodus Sucursales SIC',
+  exodus_erp_profesional: 'Exodus ERP Profesional',
+  exodus_profesional_2013: 'Exodus Profesional 2013',
+  exodus_embarques: 'Exodus Embarques',
+  exodus_epico: 'Exodus Épico',
   almacen: 'Almacén',
   credito: 'Crédito',
   pinpad: 'Pinpad',
