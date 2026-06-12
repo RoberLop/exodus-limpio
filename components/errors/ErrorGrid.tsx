@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ErrorCard } from './ErrorCard'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext'
 
 export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
@@ -12,9 +14,11 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [deletePassword, setDeletePassword] = useState('')
   const [passwordError, setPasswordError] = useState(false)
 
-  // --- NUEVOS ESTADOS PARA AMPLIAR Y COPIAR LA QUERY ---
   const [isQueryExpanded, setIsQueryExpanded] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
+
+  // Extraemos el usuario actual para el log de eliminación
+  const { user } = useAuth()
 
   const erroresFiltrados = (errors || []).filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -26,8 +30,18 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
 
-  const handleConfirmDelete = () => {
+  const handleConfirmDelete = async () => {
     if (deletePassword === '3x0du5') { 
+      
+      // Registro en la caja negra (Audit Logs)
+      if (selectedError) {
+        await supabase.from('audit_logs').insert([{
+          accion: 'ELIMINADO',
+          ticket_titulo: selectedError.title,
+          usuario: user?.name || 'Desconocido'
+        }]);
+      }
+
       onDelete(selectedError.id);
       handleCloseModal();
     } else {
@@ -35,7 +49,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
     }
   }
 
-  // Función para cerrar y resetear todo
   const handleCloseModal = () => {
     setSelectedError(null);
     setIsConfirming(false);
@@ -45,11 +58,10 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
     setIsCopied(false);
   }
 
-  // Función mágica para copiar
   const handleCopyQuery = (query: string) => {
     navigator.clipboard.writeText(query);
     setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000); // Vuelve a la normalidad en 2 segundos
+    setTimeout(() => setIsCopied(false), 2000); 
   }
 
   return (
@@ -99,7 +111,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
       <Modal isOpen={!!selectedError} onClose={handleCloseModal} title={selectedError?.title || ''}>
         
-        {/* === VISTA NORMAL DE DOS COLUMNAS === */}
         {selectedError && !isConfirming && !isQueryExpanded && (
           <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-200">
             
@@ -121,7 +132,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 <img src={selectedError.screenshotUrl} className="w-full rounded-lg shadow-sm border border-slate-200" />
               )}
 
-              {/* Cajita de Query Recortada */}
               {selectedError.solucion_query && (
                 <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
                   <div className="flex justify-between items-center mb-2">
@@ -143,7 +153,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                     <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all opacity-70 group-hover:opacity-100 transition-opacity">
                       {selectedError.solucion_query}
                     </pre>
-                    {/* Efecto de desvanecimiento para indicar que hay más texto */}
                     <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0f172a] to-transparent flex items-end justify-center pb-1">
                       <span className="text-xs text-blue-400 font-bold bg-[#0f172a] px-3 py-1 rounded-full border border-slate-700 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
                         Ver Query completa
@@ -168,10 +177,8 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                 </div>
               </div>
 
-              {/* Contenedor inferior: Logs + Botones */}
               <div className="flex flex-col gap-3 pt-3 mt-auto border-t border-slate-100">
                 
-                {/* --- Registro de Logs --- */}
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                   {selectedError.creado_por && (
                     <span>Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong></span>
@@ -184,7 +191,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                   )}
                 </div>
 
-                {/* Botones de Acción */}
                 <div className="flex justify-between items-center">
                   <button 
                     onClick={() => {
@@ -209,7 +215,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
 
-        {/* === VISTA EXPANDIDA DE LA QUERY === */}
         {selectedError && !isConfirming && isQueryExpanded && (
           <div className="space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
@@ -221,7 +226,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                   onClick={() => handleCopyQuery(selectedError.solucion_query)}
                   className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${isCopied ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
                 >
-                  {isCopied ? '¡Copiado!' : 'Copiar Query'}
+                  {isCopied ? 'Copiado' : 'Copiar Query'}
                 </button>
                 <button 
                   onClick={() => setIsQueryExpanded(false)}
@@ -240,7 +245,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
         
-        {/* === MODAL DE CONFIRMACIÓN === */}
         {isConfirming && (
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>

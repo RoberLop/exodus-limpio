@@ -58,6 +58,7 @@ export function Sidebar() {
             )
           })}
 
+          {/* === SECCIÓN EXCLUSIVA PARA ADMINISTRADORES === */}
           {isAdmin && (
             <>
               <div className="pt-4">
@@ -65,15 +66,32 @@ export function Sidebar() {
                   Administración
                 </p>
               </div>
+              
               <Link
                 href="/dashboard/admin"
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                  'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                  pathname.includes('/dashboard/admin') 
+                    ? 'bg-white shadow-md text-exodus-600' 
+                    : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
                 )}
               >
                 <span className="text-lg">⚙️</span>
                 <span>Panel Admin</span>
+              </Link>
+
+              {/* NUEVO BOTÓN DE LOGS */}
+              <Link
+                href="/dashboard/logs"
+                className={cn(
+                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                  pathname.includes('/dashboard/logs') 
+                    ? 'bg-white shadow-md text-exodus-600' 
+                    : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                )}
+              >
+                <span className="text-lg">📖</span>
+                <span>Historial Logs</span>
               </Link>
             </>
           )}
