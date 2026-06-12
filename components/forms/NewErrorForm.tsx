@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 
 interface NewErrorFormProps {
-  area: OperationalArea
+  area: string // Cambiado a string para aceptar 'global'
   initialData?: any
   onSuccess: (data?: any) => void
   onCancel: () => void
@@ -26,7 +26,10 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   
-  const [currentArea, setCurrentArea] = useState<OperationalArea>(initialData?.area || area)
+  // --- NUEVO: Si abren el form desde Global, seleccionamos una por defecto ---
+  const [currentArea, setCurrentArea] = useState<string>(
+    initialData?.area || (area === 'global' ? 'exodus_mostradores' : area)
+  )
   
   const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
   const [origen, setOrigen] = useState(initialData?.origen || 'Usuario')
@@ -97,14 +100,12 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       console.error('Error al guardar en Supabase:', error)
       alert('Error al guardar: ' + error.message)
     } else {
-      // --- REGISTRO EN LA CAJA NEGRA ---
       const accionLog = isEditing ? 'EDITADO' : 'CREADO';
       await supabase.from('audit_logs').insert([{
         accion: accionLog,
         ticket_titulo: title,
         usuario: user?.name || 'Desconocido'
       }]);
-      // ----------------------------------
 
       onSuccess(data)
     }
@@ -141,13 +142,27 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Área Operativa</label>
-          <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value as OperationalArea)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
-            <option value="exodus">Exodus</option>
-            <option value="almacen">Almacén</option>
-            <option value="credito">Crédito</option>
-            <option value="pinpad">Pinpad</option>
-            <option value="embarques">Embarques</option>
-            <option value="movil">Móvil</option>
+          {/* --- NUEVO: Menú desplegable agrupado y actualizado --- */}
+          <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
+            <optgroup label="Exodus">
+              <option value="exodus_mostradores">Exodus Mostradores</option>
+              <option value="exodus_sucursales">Exodus Sucursales</option>
+              <option value="exodus_sucursales_sic">Exodus Sucursales SIC</option>
+              <option value="exodus_erp_profesional">Exodus ERP Profesional</option>
+              <option value="exodus_profesional_2013">Exodus Profesional 2013</option>
+              <option value="exodus_embarques">Exodus Embarques</option>
+              <option value="exodus_epico">Exodus Épico</option>
+            </optgroup>
+            <optgroup label="Otras Áreas">
+              <option value="almacen">Almacén</option>
+              <option value="credito">Crédito</option>
+              <option value="pinpad">Pinpad</option>
+              <option value="embarques">Embarques</option>
+              <option value="movil">Móvil</option>
+            </optgroup>
+            <optgroup label="Información General">
+              <option value="full_info">Full Información</option>
+            </optgroup>
           </select>
         </div>
         <div>

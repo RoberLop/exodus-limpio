@@ -6,6 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
+import { areaLabels } from '@/lib/utils' // --- NUEVO: Para traer los nombres bonitos de las áreas ---
 
 export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
@@ -29,7 +30,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
   const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
 
-  // --- NUEVA FUNCIÓN: Formatear la fecha y hora para el Ticket ---
   const formatFecha = (isoString: string) => {
     if (!isoString) return ''
     const fecha = new Date(isoString)
@@ -44,7 +44,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   }
 
   const handleConfirmDelete = async () => {
-    if (deletePassword === 'isAdmin02') { 
+    if (deletePassword === '3x0du5') { 
       if (selectedError) {
         await supabase.from('audit_logs').insert([{
           accion: 'ELIMINADO',
@@ -127,6 +127,14 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             
             <div className="w-full md:w-1/2 space-y-4">
               <div className="flex flex-wrap gap-2">
+                {/* --- NUEVO: Etiqueta del Área Operativa --- */}
+                {selectedError.area && (
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-exodus-50 text-exodus-600 border border-exodus-100">
+                    {areaLabels[selectedError.area] || selectedError.area}
+                  </span>
+                )}
+                {/* ------------------------------------------ */}
+                
                 {selectedError.prioridad && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">
                     {selectedError.prioridad}
@@ -189,8 +197,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
               </div>
 
               <div className="flex flex-col gap-3 pt-3 mt-auto border-t border-slate-100">
-                
-                {/* --- NUEVO: Logs con Nombre, Fecha y Hora --- */}
                 <div className="flex flex-col gap-1 text-xs text-slate-400">
                   {selectedError.creado_por && (
                     <span>

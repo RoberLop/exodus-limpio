@@ -11,15 +11,22 @@ export function ErrorAreaPage({ areaName }: { areaName: string }) {
   const [errors, setErrors] = useState<any[]>([])
   const [editingError, setEditingError] = useState<any | null>(null)
   
-  // --- NUEVO: Aquí guardamos lo que escribes en el buscador ---
   const [searchTerm, setSearchTerm] = useState('')
 
   const fetchErrors = async () => {
-    const { data } = await supabase
+    // 1. Preparamos la consulta base (traer todo ordenado por fecha)
+    let query = supabase
       .from('errors')
       .select('*')
-      .eq('area', areaName)
       .order('created_at', { ascending: false })
+    
+    // 2. Si NO estamos en la pestaña global, le aplicamos el filtro del área
+    if (areaName !== 'global') {
+      query = query.eq('area', areaName)
+    }
+
+    // 3. Ejecutamos la consulta
+    const { data } = await query
     
     if (data) {
       setErrors(data.map(item => ({ ...item, screenshotUrl: item.screenshot_url })))
@@ -39,7 +46,6 @@ export function ErrorAreaPage({ areaName }: { areaName: string }) {
 
   return (
     <div>
-      {/* Pasamos el searchTerm y onSearchChange al Header */}
       <Header 
         area={areaName as any} 
         errorCount={errors.length} 
@@ -48,7 +54,6 @@ export function ErrorAreaPage({ areaName }: { areaName: string }) {
         onSearchChange={setSearchTerm}
       />
       
-      {/* Pasamos el mismo searchTerm al Grid para que filtre */}
       <ErrorGrid 
         errors={errors} 
         onDelete={handleDelete} 
