@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/Input'
 import { OperationalArea } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext' // --- NUEVO: Importamos el contexto de autenticación ---
+import { useAuth } from '@/context/AuthContext'
 
 interface NewErrorFormProps {
   area: OperationalArea
@@ -17,8 +17,6 @@ interface NewErrorFormProps {
 
 export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErrorFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  
-  // --- NUEVO: Obtenemos al usuario que tiene la sesión iniciada ---
   const { user } = useAuth()
   
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
@@ -35,7 +33,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [solucionQuery, setSolucionQuery] = useState(initialData?.solucion_query || '')
 
   const isEditing = !!initialData?.id
-
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,7 +64,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     e.preventDefault()
     setIsLoading(true)
     
-    // --- NUEVO: Preparamos el payload base ---
     const payload: any = {
       title,
       code: code || null,
@@ -80,12 +76,11 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       solucion_query: solucionQuery,
     }
 
-    // --- NUEVO: Inyectamos el log de quién lo hizo ---
     if (isEditing) {
-      payload.modificado_por = user?.name || 'Usuario Desconocido' // Si está editando
+      payload.modificado_por = user?.name || 'Usuario Desconocido'
     } else {
-      payload.creado_por = user?.name || 'Usuario Desconocido' // Si es nuevo
-      payload.modificado_por = null // Aseguramos que al crearse no tenga historial de edición
+      payload.creado_por = user?.name || 'Usuario Desconocido'
+      payload.modificado_por = null
     }
 
     let result;
@@ -102,6 +97,15 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       console.error('Error al guardar en Supabase:', error)
       alert('Error al guardar: ' + error.message)
     } else {
+      // --- REGISTRO EN LA CAJA NEGRA ---
+      const accionLog = isEditing ? 'EDITADO' : 'CREADO';
+      await supabase.from('audit_logs').insert([{
+        accion: accionLog,
+        ticket_titulo: title,
+        usuario: user?.name || 'Desconocido'
+      }]);
+      // ----------------------------------
+
       onSuccess(data)
     }
     
@@ -117,7 +121,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
             <div className="relative aspect-video">
               <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
               <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-slate-500 hover:text-slate-700 shadow-sm">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                X
               </button>
             </div>
           ) : (

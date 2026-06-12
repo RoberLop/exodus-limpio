@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 export default function LogsPage() {
   const [logs, setLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [filtroActivo, setFiltroActivo] = useState<string>('TODOS')
 
   useEffect(() => {
     fetchLogs()
@@ -51,6 +52,12 @@ export default function LogsPage() {
     }
   }
 
+  // Filtrar los resultados según la pestaña seleccionada
+  const logsFiltrados = logs.filter(log => {
+    if (filtroActivo === 'TODOS') return true;
+    return log.accion === filtroActivo;
+  });
+
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       <div className="flex justify-between items-end">
@@ -67,6 +74,23 @@ export default function LogsPage() {
         >
           {isLoading ? 'Actualizando...' : 'Actualizar tabla'}
         </button>
+      </div>
+
+      {/* Navegación de Filtros */}
+      <div className="flex gap-2">
+        {['TODOS', 'CREADO', 'EDITADO', 'ELIMINADO'].map((filtro) => (
+          <button
+            key={filtro}
+            onClick={() => setFiltroActivo(filtro)}
+            className={`px-4 py-2 rounded-lg text-sm font-bold transition-all border ${
+              filtroActivo === filtro
+                ? 'bg-slate-800 text-white border-slate-800 shadow-md'
+                : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
+            }`}
+          >
+            {filtro === 'TODOS' ? 'Todos' : filtro === 'CREADO' ? 'Agregados' : filtro === 'EDITADO' ? 'Editados' : 'Eliminados'}
+          </button>
+        ))}
       </div>
 
       <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
@@ -87,14 +111,14 @@ export default function LogsPage() {
                     Cargando historial...
                   </td>
                 </tr>
-              ) : logs.length === 0 ? (
+              ) : logsFiltrados.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    No hay registros en el historial todavia.
+                    No hay registros en esta categoria.
                   </td>
                 </tr>
               ) : (
-                logs.map((log) => (
+                logsFiltrados.map((log) => (
                   <tr key={log.id} className="hover:bg-white/60 transition-colors">
                     <td className="p-4 text-sm text-slate-600 whitespace-nowrap">
                       {formatFecha(log.fecha)}
