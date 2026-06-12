@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('') // Cambiamos email por username
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -19,12 +19,13 @@ export default function LoginPage() {
     setError('')
     setIsLoading(true)
 
-    const success = await login(email, password)
+    // Ahora le pasamos el username
+    const success = await login(username, password)
     
     if (success) {
       router.push('/dashboard/credito')
     } else {
-      setError('Credenciales inválidas')
+      setError('Usuario o contraseña incorrectos')
     }
     
     setIsLoading(false)
@@ -46,11 +47,11 @@ export default function LoginPage() {
         <div className="glass rounded-3xl p-8">
           <form onSubmit={handleSubmit} className="space-y-5">
             <Input
-              label="Correo electrónico"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tu@empresa.com"
+              label="Usuario"
+              type="text" // Cambiamos de email a text
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Ej: Rober CAE"
               required
               icon={
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -79,10 +80,11 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Demo hint */}
+          {/* Demo hint actualizado */}
           <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-100">
             <p className="text-xs text-slate-500 text-center">
-              <span className="font-medium">Demo:</span> admin@exodus.com o user@exodus.com
+              Ingresa con tu nombre de usuario asignado. <br />
+              Ej: <span className="font-medium text-slate-700">Rober CAE</span>
             </p>
           </div>
         </div>
@@ -90,3 +92,4 @@ export default function LoginPage() {
     </div>
   )
 }
+

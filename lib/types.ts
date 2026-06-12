@@ -7,7 +7,8 @@ export interface User {
   department: OperationalArea
 }
 
-export type OperationalArea =  'exodus' | 'almacen' | 'credito' | 'pinpad' | 'embarques' | 'movil' | 'admin'
+// ¡Aquí está la magia! Agregamos 'sistemas' al final de la lista
+export type OperationalArea =  'exodus' | 'almacen' | 'credito' | 'pinpad' | 'embarques' | 'movil' | 'admin' | 'sistemas'
 
 export interface ErrorSolution {
   id: string
