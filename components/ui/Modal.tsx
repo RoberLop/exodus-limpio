@@ -10,7 +10,8 @@ interface ModalProps {
   title?: string
   description?: string
   children: ReactNode
-  size?: 'sm' | 'md' | 'lg' | 'xl'
+  // Agregamos tallas más grandes
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | '3xl' | '4xl' 
 }
 
 export function Modal({
@@ -19,13 +20,18 @@ export function Modal({
   title,
   description,
   children,
-  size = 'md',
+  size = '3xl', // <-- Cambiamos el default para que por defecto sea más ancho
 }: ModalProps) {
+  
+  // Agregamos las nuevas clases de Tailwind para los anchos máximos
   const sizes = {
     sm: 'max-w-sm',
     md: 'max-w-md',
     lg: 'max-w-lg',
     xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+    '4xl': 'max-w-4xl', 
   }
 
   return (
@@ -60,7 +66,7 @@ export function Modal({
                   'bg-white/90 backdrop-blur-xl shadow-2xl',
                   'border border-white/20',
                   'transition-all',
-                  sizes[size]
+                  sizes[size] // <--- Aquí es donde se aplica el nuevo ancho
                 )}
               >
                 {(title || description) && (
