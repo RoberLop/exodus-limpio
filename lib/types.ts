@@ -7,8 +7,24 @@ export interface User {
   department: OperationalArea
 }
 
-// ¡Aquí está la magia! Agregamos 'sistemas' al final de la lista
-export type OperationalArea =  'exodus' | 'almacen' | 'credito' | 'pinpad' | 'embarques' | 'movil' | 'admin' | 'sistemas'
+// Actualizamos la lista con las subcategorías y la sección de info
+export type OperationalArea = 
+  | 'exodus' 
+  | 'exodus_mostradores' 
+  | 'exodus_sucursales' 
+  | 'exodus_sucursales_sic' 
+  | 'exodus_erp_profesional' 
+  | 'exodus_profesional_2013' 
+  | 'exodus_embarques' 
+  | 'exodus_epico' 
+  | 'almacen' 
+  | 'credito' 
+  | 'pinpad' 
+  | 'embarques' 
+  | 'movil' 
+  | 'admin' 
+  | 'sistemas' 
+  | 'full_info'
 
 export interface ErrorSolution {
   id: string

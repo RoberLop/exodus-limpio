@@ -1,20 +1,35 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 
-const areas: OperationalArea[] = ['exodus', 'almacen', 'credito', 'pinpad', 'embarques', 'movil']
+// Separamos las áreas para poder estructurar el menú
+const mainAreas: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
+const exodusSubAreas: OperationalArea[] = [
+  'exodus_mostradores', 
+  'exodus_sucursales', 
+  'exodus_sucursales_sic', 
+  'exodus_erp_profesional', 
+  'exodus_profesional_2013', 
+  'exodus_embarques', 
+  'exodus_epico'
+]
 
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
+  
+  // Estado para controlar si la carpeta Exodus está abierta o cerrada
+  const [isExodusOpen, setIsExodusOpen] = useState(false)
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-72 p-4">
       <div className="h-full glass rounded-3xl flex flex-col overflow-hidden">
+        
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -29,14 +44,70 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
+          
+          {/* Categoría Global */}
+          <Link
+            href="/dashboard/global"
+            className={cn(
+              'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mb-4',
+              pathname.includes('/dashboard/global') 
+                ? 'bg-slate-800 shadow-md text-white' 
+                : 'bg-white shadow-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900'
+            )}
+          >
+            <span className="text-lg">{areaIcons['global']}</span>
+            <span className="font-bold">{areaLabels['global']}</span>
+          </Link>
+
           <p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
             Áreas Operativas
           </p>
           
-          {areas.map((area) => {
+          {/* CARPETA DESPLEGABLE EXODUS */}
+          <div>
+            <button
+              onClick={() => setIsExodusOpen(!isExodusOpen)}
+              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900"
+            >
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{isExodusOpen ? '📂' : '📁'}</span>
+                <span>Exodus</span>
+              </div>
+              <span className={`text-xs transition-transform duration-200 ${isExodusOpen ? 'rotate-180' : ''}`}>
+                ▼
+              </span>
+            </button>
+
+            {/* Subcategorías de Exodus (Solo se muestran si isExodusOpen es true) */}
+            {isExodusOpen && (
+              <div className="mt-1 mb-2 space-y-1 pl-8 border-l-2 border-slate-200/50 ml-4">
+                {exodusSubAreas.map((area) => {
+                  const isActive = pathname.includes(`/dashboard/${area}`)
+                  return (
+                    <Link
+                      key={area}
+                      href={`/dashboard/${area}`}
+                      className={cn(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
+                        'text-sm font-medium',
+                        isActive
+                          ? 'bg-white shadow-sm text-exodus-600'
+                          : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
+                      )}
+                    >
+                      <span>{areaLabels[area]}</span>
+                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500" />}
+                    </Link>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Resto de áreas normales */}
+          {mainAreas.map((area) => {
             const isActive = pathname.includes(`/dashboard/${area}`)
-            
             return (
               <Link
                 key={area}
@@ -58,7 +129,22 @@ export function Sidebar() {
             )
           })}
 
-          {/* === SECCIÓN EXCLUSIVA PARA ADMINISTRADORES === */}
+          <div className="pt-4 mt-4 border-t border-slate-200/50">
+            <Link
+              href="/dashboard/full_info"
+              className={cn(
+                'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
+                pathname.includes('/dashboard/full_info') 
+                  ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' 
+                  : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700'
+              )}
+            >
+              <span className="text-lg">{areaIcons['full_info']}</span>
+              <span>{areaLabels['full_info']}</span>
+            </Link>
+          </div>
+
+          {/* Administración */}
           {isAdmin && (
             <>
               <div className="pt-4">
@@ -66,28 +152,21 @@ export function Sidebar() {
                   Administración
                 </p>
               </div>
-              
               <Link
                 href="/dashboard/admin"
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                  pathname.includes('/dashboard/admin') 
-                    ? 'bg-white shadow-md text-exodus-600' 
-                    : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                  pathname.includes('/dashboard/admin') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
                 )}
               >
                 <span className="text-lg">⚙️</span>
                 <span>Panel Admin</span>
               </Link>
-
-              {/* NUEVO BOTÓN DE LOGS */}
               <Link
                 href="/dashboard/logs"
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                  pathname.includes('/dashboard/logs') 
-                    ? 'bg-white shadow-md text-exodus-600' 
-                    : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                  pathname.includes('/dashboard/logs') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900'
                 )}
               >
                 <span className="text-lg">📖</span>
