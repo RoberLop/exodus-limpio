@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase'
 
 interface NewErrorFormProps {
   area: OperationalArea
-  initialData?: any // <-- NUEVO: Recibe los datos si estamos editando
+  initialData?: any
   onSuccess: (data?: any) => void
   onCancel: () => void
 }
@@ -17,7 +17,6 @@ interface NewErrorFormProps {
 export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErrorFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   
-  // NUEVO: Los estados inician con los datos previos si existen
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
   const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
   
@@ -25,11 +24,13 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   
+  const [currentArea, setCurrentArea] = useState<OperationalArea>(initialData?.area || area)
+  
   const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
   const [origen, setOrigen] = useState(initialData?.origen || 'Usuario')
   const [solucionQuery, setSolucionQuery] = useState(initialData?.solucion_query || '')
 
-  const isEditing = !!initialData?.id // Variable para saber si estamos en modo edición
+  const isEditing = !!initialData?.id
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -68,7 +69,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       description,
       steps,
       screenshot_url: preview,
-      area: area,
+      area: currentArea, 
       prioridad,
       origen,
       solucion_query: solucionQuery
@@ -76,7 +77,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
     let result;
 
-    // NUEVO: Lógica que decide si crear o actualizar en Supabase
     if (isEditing) {
       result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
     } else {
@@ -121,7 +121,19 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
-      <div className="grid grid-cols-2 gap-4">
+      {/* --- NUEVO: Convertimos el Grid a 3 columnas para incluir el Área --- */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Área Operativa</label>
+          <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value as OperationalArea)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
+            <option value="exodus">Exodus</option>
+            <option value="almacen">Almacén</option>
+            <option value="credito">Crédito</option>
+            <option value="pinpad">Pinpad</option>
+            <option value="embarques">Embarques</option>
+            <option value="movil">Móvil</option>
+          </select>
+        </div>
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Prioridad</label>
           <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
@@ -166,7 +178,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancelar</Button>
-        {/* Cambia el texto del botón según si estamos editando o creando */}
         <Button type="submit" className="flex-1" isLoading={isLoading}>
           {isEditing ? 'Guardar Cambios' : 'Guardar error'}
         </Button>

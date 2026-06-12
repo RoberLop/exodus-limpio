@@ -6,8 +6,7 @@ import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 
-// --- AQUÍ ESTÁ EL CAMBIO: Agregamos 'exodus' y 'almacen' a la lista ---
-const areas: OperationalArea[] = ['credito', 'pinpad', 'embarques', 'movil', 'exodus', 'almacen']
+const areas: OperationalArea[] = ['exodus', 'almacen', 'credito', 'pinpad', 'embarques', 'movil']
 
 export function Sidebar() {
   const pathname = usePathname()
