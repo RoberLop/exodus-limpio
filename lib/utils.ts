@@ -20,7 +20,7 @@ export const areaLabels: Record<string, string> = {
   pinpad: 'Pinpad',
   embarques: 'Embarques',
   movil: 'Móvil',
-  full_info: 'Full Información',
+  full_info: 'Informacion CAE',
   admin: 'Panel de Administrador',
 }
 
@@ -39,7 +39,7 @@ export const areaIcons: Record<string, string> = {
   pinpad: '🔢',
   embarques: '🚚',
   movil: '📱',
-  full_info: '📚',
+  full_info: '',
   admin: '⚙️',
 }
 
