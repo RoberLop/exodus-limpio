@@ -39,7 +39,7 @@ export default function LoginPage() {
           <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-xl shadow-exodus-500/30">
             <span className="text-white font-bold text-3xl">E</span>
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-slate-900">Exodus KB</h1>
+          <h1 className="mt-4 text-2xl font-bold text-slate-900">Exodus CAE</h1>
           <p className="mt-1 text-slate-500">Base de conocimiento interna</p>
         </div>
 
