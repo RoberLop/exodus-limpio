@@ -38,7 +38,7 @@ const userPasswords: Record<string, string> = {
   'erick cae': 'salto11',
   'william cae': 'dardo88',
   'oscar cae': 'faro33',
-  'marcos cae': 'pino66',
+  'marcos cae': 'CRACK69',
   'rober cae': 'zorro55',
   'alejandro cae': 'roca44',
   'kevin cae': 'ola19',
