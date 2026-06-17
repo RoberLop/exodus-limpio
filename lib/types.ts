@@ -24,7 +24,7 @@ export type OperationalArea =
   | 'movil' 
   | 'admin' 
   | 'sistemas' 
-  | 'full_info'
+  | 'informacion'
   | 'categoria_1'
   | 'categoria_2'
   | 'categoria_3'

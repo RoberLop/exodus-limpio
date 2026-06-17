@@ -18,7 +18,6 @@ const exodusSubAreasCAE: OperationalArea[] = [
   'exodus_epico'
 ]
 
-// Las nuevas áreas para TI
 const areasTI: OperationalArea[] = [
   'categoria_1',
   'categoria_2',
@@ -33,7 +32,6 @@ export function Sidebar() {
   const { user, logout, isAdmin } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
-  // Esta es la variable clave que define qué menú ver
   const isTI = user?.department === 'TI'
 
   return (
@@ -59,7 +57,6 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
           
-          {/* Soluciones Globales (Para Todos) */}
           <Link
             href="/dashboard/global"
             className={cn(
@@ -77,7 +74,7 @@ export function Sidebar() {
             Áreas Operativas
           </p>
           
-          {/* --- RENDERIZADO CONDICIONAL: SI ES CAE --- */}
+          {/* --- CAE --- */}
           {!isTI && (
             <>
               <div>
@@ -139,7 +136,7 @@ export function Sidebar() {
             </>
           )}
 
-          {/* --- RENDERIZADO CONDICIONAL: SI ES TI --- */}
+          {/* --- TI --- */}
           {isTI && (
             <>
               {areasTI.map((area) => {
@@ -162,23 +159,23 @@ export function Sidebar() {
             </>
           )}
 
-          {/* Info Full (Para Todos) */}
+          {/* --- INFORMACIÓN (NUEVA RUTA) --- */}
           <div className="pt-4 mt-4 border-t border-slate-200/50">
             <Link
-              href="/dashboard/full_info"
+              href="/dashboard/informacion"
               className={cn(
                 'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                pathname.includes('/dashboard/full_info') 
+                pathname.includes('/dashboard/informacion') 
                   ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' 
                   : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700'
               )}
             >
-              <span className="text-lg">{areaIcons['full_info']}</span>
-              <span>{isTI ? 'Información TI' : areaLabels['full_info']}</span>
+              <span className="text-lg">📢</span>
+              <span>Centro de Información</span>
             </Link>
           </div>
 
-          {/* Administración (Para Todos los admins) */}
+          {/* Administración */}
           {isAdmin && (
             <>
               <div className="pt-4">
@@ -238,7 +235,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Firma de creador */}
+        {/* Firma */}
         <div className="pb-3 pt-1 text-center opacity-60 hover:opacity-100 transition-opacity">
           <p className="text-[10px] font-medium text-slate-500 tracking-wide">
             &lt;/&gt; Desarrollado por Rober López
