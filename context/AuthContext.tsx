@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User, AuthState } from '@/lib/types'
+import { supabase } from '@/lib/supabase' // <-- Importamos la conexión a tu base de datos
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string, area: 'CAE' | 'TI') => Promise<{success: boolean, error?: string}>
@@ -10,49 +11,6 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
-
-
-const mockUsers: Record<string, Omit<User, 'department'>> = {
-  // Equipo CAE (Solo acceso a CAE)
-  'admin cae': { id: '1', name: 'ADMIN CAE', email: 'admin@exodus.com', role: 'admin', departments: ['CAE'] },
-  'sergio cae': { id: '2', name: 'Sergio CAE', email: 'sergio@exodus.com', role: 'admin', departments: ['CAE'] },
-  'fabian cae': { id: '3', name: 'Fabian CAE', email: 'fabian@exodus.com', role: 'user', departments: ['CAE'] },
-  'luis cae': { id: '4', name: 'Luis CAE', email: 'luis@exodus.com', role: 'user', departments: ['CAE'] },
-  'erick cae': { id: '5', name: 'Erick CAE', email: 'erick@exodus.com', role: 'user', departments: ['CAE'] },
-  'william cae': { id: '6', name: 'William CAE', email: 'william@exodus.com', role: 'user', departments: ['CAE'] },
-  'oscar cae': { id: '7', name: 'Oscar CAE', email: 'oscar@exodus.com', role: 'user', departments: ['CAE'] },
-  'marcos cae': { id: '8', name: 'Marcos CAE', email: 'marcos@exodus.com', role: 'user', departments: ['CAE'] },
-  'alejandro cae': { id: '10', name: 'Alejandro CAE', email: 'alejandro@exodus.com', role: 'user', departments: ['CAE'] },
-  'kevin cae': { id: '11', name: 'Kevin CAE', email: 'kevin@exodus.com', role: 'user', departments: ['CAE'] },
-  'ian cae': { id: '12', name: 'Ian CAE', email: 'ian@exodus.com', role: 'user', departments: ['CAE'] },
-  'edgar cae': { id: '13', name: 'Edgar CAE', email: 'edgar@exodus.com', role: 'user', departments: ['CAE'] },
-  'cristhian cae': { id: '14', name: 'Cristhian CAE', email: 'cristhian@exodus.com', role: 'user', departments: ['CAE'] },
-  
-  //  acceso a AMBOS departamentos
-  'rober cae': { id: '9', name: 'Rober López', email: 'rober@exodus.com', role: 'admin', departments: ['CAE', 'TI'] },
-  'admin': { id: '1', name: 'ADMIN CAE', email: 'admin@exodus.com', role: 'admin', departments: ['CAE', 'TI'] },
-
-  // Equipo TI (Solo acceso a TI)
-  'Marcos': { id: '15', name: 'Operaciones TI', email: 'ti@exodus.com', role: 'user', departments: ['TI'] }
-}
-
-const userPasswords: Record<string, string> = {
-  'admin cae': 'alfa123',
-  'sergio cae': 'tigre45',
-  'fabian cae': 'rojo22',
-  'luis cae': 'nube77',
-  'erick cae': 'salto11',
-  'william cae': 'dardo88',
-  'oscar cae': 'faro33',
-  'marcos cae': 'CRACK69',
-  'rober cae': 'zorro55',
-  'alejandro cae': 'roca44',
-  'kevin cae': 'ola19',
-  'ian cae': 'luna82',
-  'edgar cae': 'mapa31',
-  'cristhian cae': 'gato64',
-  'Marcos': 'pesa44'
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -71,28 +29,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (username: string, password: string, selectedArea: 'CAE' | 'TI'): Promise<{success: boolean, error?: string}> => {
-    await new Promise(resolve => setTimeout(resolve, 800))
-    
     const cleanUsername = username.toLowerCase().trim()
-    const baseUser = mockUsers[cleanUsername]
-    const correctPassword = userPasswords[cleanUsername]
     
-    // 1. Verificamos que el usuario y la contraseña sean correctos
-    if (!baseUser || correctPassword !== password) {
+    // 1. Buscamos al usuario directamente en Supabase
+    const { data: userRecord, error } = await supabase
+      .from('usuarios')
+      .select('*')
+      .eq('username', cleanUsername)
+      .single()
+    
+    // 2. Si no existe o la contraseña no cuadra, lo rebotamos
+    if (error || !userRecord || userRecord.password !== password) {
       return { success: false, error: 'Usuario o contraseña incorrectos' }
     }
 
-    // 2. Verificamos que el usuario TENGA PERMISO para entrar al área seleccionada
-    if (!baseUser.departments.includes(selectedArea)) {
+    // 3. Verificamos que el usuario TENGA PERMISO para entrar al área seleccionada
+    if (!userRecord.departments.includes(selectedArea)) {
       return { success: false, error: `No tienes permisos para acceder a ${selectedArea}` }
     }
     
-    // 3. Creamos la sesión asignándole el departamento que eligió
+    // 4. Armamos su sesión con los datos que trajo la base de datos
     const userSession: User = {
-      ...baseUser,
+      id: userRecord.id.toString(),
+      name: userRecord.name,
+      email: userRecord.email,
+      role: userRecord.role as 'admin' | 'user',
+      departments: userRecord.departments,
       department: selectedArea
     }
 
+    // 5. Lo dejamos pasar
     localStorage.setItem('exodus_user', JSON.stringify(userSession))
     setAuthState({
       user: userSession,
