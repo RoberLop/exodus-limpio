@@ -41,9 +41,6 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-xl shadow-exodus-500/30">
-            <span className="text-white font-bold text-3xl">S</span>
-          </div>
           <h1 className="mt-4 text-2xl font-bold text-slate-900">Soporte</h1>
           <p className="mt-1 text-slate-500">Base de conocimiento interna</p>
         </div>
