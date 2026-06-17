@@ -11,7 +11,7 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// --- LISTA DE USUARIOS DEL EQUIPO CAE Y TI ---
+
 const mockUsers: Record<string, User> = {
   // Equipo CAE
   'admin cae': { id: '1', name: 'ADMIN CAE', email: 'admin@exodus.com', role: 'admin', department: 'CAE' },
