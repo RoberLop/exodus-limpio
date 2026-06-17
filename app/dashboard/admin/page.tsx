@@ -39,9 +39,7 @@ export default function AdminPage() {
     setIsLoading(false)
   }
 
-  // --- LÓGICA DE FILTRADO INTELIGENTE ---
   const filteredUsers = usuarios.filter((u) => {
-    // 1. Filtro de búsqueda (busca por nombre, usuario o correo)
     const term = searchTerm.toLowerCase()
     const matchesSearch = 
       (u.name && u.name.toLowerCase().includes(term)) ||
