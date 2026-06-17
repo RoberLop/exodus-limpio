@@ -2,21 +2,26 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext' // <-- 1. Importamos auth
 
 export default function LogsPage() {
+  const { user } = useAuth() // <-- 2. Traemos al usuario
   const [logs, setLogs] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [filtroActivo, setFiltroActivo] = useState<string>('TODOS')
 
   useEffect(() => {
     fetchLogs()
-  }, [])
+  }, [user?.department]) // <-- 3. Recargamos si cambia el usuario
 
   const fetchLogs = async () => {
+    if (!user?.department) return // Esperamos a que cargue el usuario
+
     setIsLoading(true)
     const { data, error } = await supabase
       .from('audit_logs')
       .select('*')
+      .eq('departamento', user.department) // <-- 4. EL FILTRO MÁGICO
       .order('fecha', { ascending: false })
     
     if (error) {
@@ -52,7 +57,6 @@ export default function LogsPage() {
     }
   }
 
-  // Filtrar los resultados según la pestaña seleccionada
   const logsFiltrados = logs.filter(log => {
     if (filtroActivo === 'TODOS') return true;
     return log.accion === filtroActivo;
@@ -64,7 +68,7 @@ export default function LogsPage() {
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Historial de Auditoria</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Registro de todos los movimientos de tickets en el sistema.
+            Registro de todos los movimientos de tickets en {user?.department === 'TI' ? 'Operaciones TI' : 'Soporte CAE'}.
           </p>
         </div>
         <button 
@@ -76,7 +80,6 @@ export default function LogsPage() {
         </button>
       </div>
 
-      {/* Navegación de Filtros */}
       <div className="flex gap-2">
         {['TODOS', 'CREADO', 'EDITADO', 'ELIMINADO'].map((filtro) => (
           <button
@@ -107,33 +110,23 @@ export default function LogsPage() {
             <tbody className="divide-y divide-slate-100 bg-white/40">
               {isLoading ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    Cargando historial...
-                  </td>
+                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">Cargando historial...</td>
                 </tr>
               ) : logsFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">
-                    No hay registros en esta categoria.
-                  </td>
+                  <td colSpan={4} className="p-8 text-center text-slate-400 font-medium">No hay registros en esta categoria.</td>
                 </tr>
               ) : (
                 logsFiltrados.map((log) => (
                   <tr key={log.id} className="hover:bg-white/60 transition-colors">
-                    <td className="p-4 text-sm text-slate-600 whitespace-nowrap">
-                      {formatFecha(log.fecha)}
-                    </td>
+                    <td className="p-4 text-sm text-slate-600 whitespace-nowrap">{formatFecha(log.fecha)}</td>
                     <td className="p-4 whitespace-nowrap">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${getActionColor(log.accion)}`}>
                         {log.accion}
                       </span>
                     </td>
-                    <td className="p-4 text-sm font-medium text-slate-800">
-                      {log.ticket_titulo}
-                    </td>
-                    <td className="p-4 text-sm text-slate-600 font-medium">
-                      {log.usuario}
-                    </td>
+                    <td className="p-4 text-sm font-medium text-slate-800">{log.ticket_titulo}</td>
+                    <td className="p-4 text-sm text-slate-600 font-medium">{log.usuario}</td>
                   </tr>
                 ))
               )}

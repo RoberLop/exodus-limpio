@@ -3,13 +3,12 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { OperationalArea } from '@/lib/types'
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 
 interface NewErrorFormProps {
-  area: string // Cambiado a string para aceptar 'global'
+  area: string
   initialData?: any
   onSuccess: (data?: any) => void
   onCancel: () => void
@@ -26,9 +25,10 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   
-  // --- NUEVO: Si abren el form desde Global, seleccionamos una por defecto ---
+  // Dependiendo si es TI o CAE, ponemos una por defecto distinta al crear desde Global
+  const defaultArea = user?.department === 'TI' ? 'categoria_1' : 'exodus_mostradores'
   const [currentArea, setCurrentArea] = useState<string>(
-    initialData?.area || (area === 'global' ? 'exodus_mostradores' : area)
+    initialData?.area || (area === 'global' ? defaultArea : area)
   )
   
   const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
@@ -50,13 +50,11 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   }
 
   const addStep = () => setSteps([...steps, ''])
-
   const updateStep = (index: number, value: string) => {
     const newSteps = [...steps]
     newSteps[index] = value
     setSteps(newSteps)
   }
-
   const removeStep = (index: number) => {
     if (steps.length > 1) {
       setSteps(steps.filter((_, i) => i !== index))
@@ -67,6 +65,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     e.preventDefault()
     setIsLoading(true)
     
+    // 1. Aquí inyectamos el departamento al payload
     const payload: any = {
       title,
       code: code || null,
@@ -77,6 +76,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       prioridad,
       origen,
       solucion_query: solucionQuery,
+      departamento: user?.department || 'CAE' // <-- GUARDA SI ES DE TI O CAE
     }
 
     if (isEditing) {
@@ -87,7 +87,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     }
 
     let result;
-
     if (isEditing) {
       result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
     } else {
@@ -101,10 +100,12 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       alert('Error al guardar: ' + error.message)
     } else {
       const accionLog = isEditing ? 'EDITADO' : 'CREADO';
+      // 2. Aquí también le decimos a los logs a qué departamento pertenece el movimiento
       await supabase.from('audit_logs').insert([{
         accion: accionLog,
         ticket_titulo: title,
-        usuario: user?.name || 'Desconocido'
+        usuario: user?.name || 'Desconocido',
+        departamento: user?.department || 'CAE' // <-- GUARDA EN LOGS
       }]);
 
       onSuccess(data)
@@ -142,24 +143,37 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1.5">Área Operativa</label>
-          {/* --- NUEVO: Menú desplegable agrupado y actualizado --- */}
           <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
-            <optgroup label="Exodus">
-              <option value="exodus_mostradores">Exodus Mostradores</option>
-              <option value="exodus_sucursales">Exodus Sucursales</option>
-              <option value="exodus_sucursales_sic">Exodus Sucursales SIC</option>
-              <option value="exodus_erp_profesional">Exodus ERP Profesional</option>
-              <option value="exodus_profesional_2013">Exodus Profesional 2013</option>
-              <option value="exodus_embarques">Exodus Embarques</option>
-              <option value="exodus_epico">Exodus Épico</option>
-            </optgroup>
-            <optgroup label="Otras Áreas">
-              <option value="almacen">Almacén</option>
-              <option value="credito">Crédito</option>
-              <option value="pinpad">Pinpad</option>
-              <option value="embarques">Embarques</option>
-              <option value="movil">Móvil</option>
-            </optgroup>
+            {/* RENDERIZADO INTELIGENTE DE ÁREAS */}
+            {user?.department === 'TI' ? (
+              <optgroup label="Operaciones TI">
+                <option value="categoria_1">Categoría 1</option>
+                <option value="categoria_2">Categoría 2</option>
+                <option value="categoria_3">Categoría 3</option>
+                <option value="categoria_4">Categoría 4</option>
+                <option value="categoria_5">Categoría 5</option>
+                <option value="categoria_6">Categoría 6</option>
+              </optgroup>
+            ) : (
+              <>
+                <optgroup label="Exodus">
+                  <option value="exodus_mostradores">Exodus Mostradores</option>
+                  <option value="exodus_sucursales">Exodus Sucursales</option>
+                  <option value="exodus_sucursales_sic">Exodus Sucursales SIC</option>
+                  <option value="exodus_erp_profesional">Exodus ERP Profesional</option>
+                  <option value="exodus_profesional_2013">Exodus Profesional 2013</option>
+                  <option value="exodus_embarques">Exodus Embarques</option>
+                  <option value="exodus_epico">Exodus Épico</option>
+                </optgroup>
+                <optgroup label="Otras Áreas">
+                  <option value="almacen">Almacén</option>
+                  <option value="credito">Crédito</option>
+                  <option value="pinpad">Pinpad</option>
+                  <option value="embarques">Embarques</option>
+                  <option value="movil">Móvil</option>
+                </optgroup>
+              </>
+            )}
             <optgroup label="Información General">
               <option value="full_info">Full Información</option>
             </optgroup>
