@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/select' 
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
@@ -25,7 +26,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   
-  // Dependiendo si es TI o CAE, ponemos una por defecto distinta al crear desde Global
   const defaultArea = user?.department === 'TI' ? 'categoria_1' : 'exodus_mostradores'
   const [currentArea, setCurrentArea] = useState<string>(
     initialData?.area || (area === 'global' ? defaultArea : area)
@@ -37,6 +37,63 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
   const isEditing = !!initialData?.id
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // --- 1. AQUÍ CREAMOS LAS OPCIONES PARA TUS NUEVOS MENÚS ---
+  const areaGroups = user?.department === 'TI'
+    ? [
+        {
+          label: 'Operaciones TI',
+          options: [
+            { value: 'categoria_1', label: 'Categoría 1' },
+            { value: 'categoria_2', label: 'Categoría 2' },
+            { value: 'categoria_3', label: 'Categoría 3' },
+            { value: 'categoria_4', label: 'Categoría 4' },
+            { value: 'categoria_5', label: 'Categoría 5' },
+            { value: 'categoria_6', label: 'Categoría 6' }
+          ]
+        }
+      ]
+    : [
+        {
+          label: 'Exodus',
+          options: [
+            { value: 'exodus_mostradores', label: 'Exodus Mostradores' },
+            { value: 'exodus_sucursales', label: 'Exodus Sucursales' },
+            { value: 'exodus_sucursales_sic', label: 'Exodus Sucursales SIC' },
+            { value: 'exodus_erp_profesional', label: 'Exodus ERP Profesional' },
+            { value: 'exodus_profesional_2013', label: 'Exodus Profesional 2013' },
+            { value: 'exodus_embarques', label: 'Exodus Embarques' },
+            { value: 'exodus_epico', label: 'Exodus Épico' }
+          ]
+        },
+        {
+          label: 'Otras Áreas',
+          options: [
+            { value: 'almacen', label: 'Almacén' },
+            { value: 'credito', label: 'Crédito' },
+            { value: 'pinpad', label: 'Pinpad' },
+            { value: 'embarques', label: 'Embarques' },
+            { value: 'movil', label: 'Móvil' }
+          ]
+        },
+        {
+          label: 'Información General',
+          options: [
+            { value: 'full_info', label: 'Full Información' }
+          ]
+        }
+      ]
+
+  const priorityOptions = [
+    { value: 'Común', label: 'Común' },
+    { value: 'Normal', label: 'Normal' },
+    { value: 'Raro', label: 'Raro' }
+  ]
+
+  const originOptions = [
+    { value: 'Usuario', label: 'Usuario' },
+    { value: 'Sistemas', label: 'Sistemas' }
+  ]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -65,7 +122,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     e.preventDefault()
     setIsLoading(true)
     
-    // 1. Aquí inyectamos el departamento al payload
     const payload: any = {
       title,
       code: code || null,
@@ -76,7 +132,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       prioridad,
       origen,
       solucion_query: solucionQuery,
-      departamento: user?.department || 'CAE' // <-- GUARDA SI ES DE TI O CAE
+      departamento: user?.department || 'CAE'
     }
 
     if (isEditing) {
@@ -100,12 +156,11 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       alert('Error al guardar: ' + error.message)
     } else {
       const accionLog = isEditing ? 'EDITADO' : 'CREADO';
-      // 2. Aquí también le decimos a los logs a qué departamento pertenece el movimiento
       await supabase.from('audit_logs').insert([{
         accion: accionLog,
         ticket_titulo: title,
         usuario: user?.name || 'Desconocido',
-        departamento: user?.department || 'CAE' // <-- GUARDA EN LOGS
+        departamento: user?.department || 'CAE'
       }]);
 
       onSuccess(data)
@@ -140,60 +195,30 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
+      {/* --- 2. AQUÍ ESTÁ LA MAGIA VISUAL: LOS MENÚS NUEVOS --- */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Área Operativa</label>
-          <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
-            {/* RENDERIZADO INTELIGENTE DE ÁREAS */}
-            {user?.department === 'TI' ? (
-              <optgroup label="Operaciones TI">
-                <option value="categoria_1">Categoría 1</option>
-                <option value="categoria_2">Categoría 2</option>
-                <option value="categoria_3">Categoría 3</option>
-                <option value="categoria_4">Categoría 4</option>
-                <option value="categoria_5">Categoría 5</option>
-                <option value="categoria_6">Categoría 6</option>
-              </optgroup>
-            ) : (
-              <>
-                <optgroup label="Exodus">
-                  <option value="exodus_mostradores">Exodus Mostradores</option>
-                  <option value="exodus_sucursales">Exodus Sucursales</option>
-                  <option value="exodus_sucursales_sic">Exodus Sucursales SIC</option>
-                  <option value="exodus_erp_profesional">Exodus ERP Profesional</option>
-                  <option value="exodus_profesional_2013">Exodus Profesional 2013</option>
-                  <option value="exodus_embarques">Exodus Embarques</option>
-                  <option value="exodus_epico">Exodus Épico</option>
-                </optgroup>
-                <optgroup label="Otras Áreas">
-                  <option value="almacen">Almacén</option>
-                  <option value="credito">Crédito</option>
-                  <option value="pinpad">Pinpad</option>
-                  <option value="embarques">Embarques</option>
-                  <option value="movil">Móvil</option>
-                </optgroup>
-              </>
-            )}
-            <optgroup label="Información General">
-              <option value="full_info">Full Información</option>
-            </optgroup>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Prioridad</label>
-          <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
-            <option value="Común">Común</option>
-            <option value="Normal">Normal</option>
-            <option value="Raro">Raro</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1.5">Origen</label>
-          <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 focus:ring-2 focus:ring-exodus-500/20 text-sm">
-            <option value="Usuario">Usuario</option>
-            <option value="Sistemas">Sistemas</option>
-          </select>
-        </div>
+        
+        <Select 
+          label="Área Operativa" 
+          value={currentArea} 
+          onChange={setCurrentArea} 
+          groups={areaGroups} 
+        />
+
+        <Select 
+          label="Prioridad" 
+          value={prioridad} 
+          onChange={setPrioridad} 
+          options={priorityOptions} 
+        />
+
+        <Select 
+          label="Origen" 
+          value={origen} 
+          onChange={setOrigen} 
+          options={originOptions} 
+        />
+
       </div>
 
       <Input label="Código de error" placeholder="Ej: ERR_500" value={code} onChange={(e: any) => setCode(e.target.value)} />
