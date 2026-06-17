@@ -12,11 +12,15 @@ export default function AdminPage() {
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
+  // --- NUEVOS ESTADOS PARA BÚSQUEDA Y FILTROS ---
+  const [searchTerm, setSearchTerm] = useState('')
+  const [filterDept, setFilterDept] = useState<'TODOS' | 'CAE' | 'TI'>('TODOS')
+
   // Estados para el Modal de Crear/Editar
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
 
-  // Estados para el Modal de ELIMINAR (Contraseña Maestra)
+  // Estados para el Modal de ELIMINAR
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<any | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
@@ -35,7 +39,22 @@ export default function AdminPage() {
     setIsLoading(false)
   }
 
-  // --- LÓGICA PARA ELIMINAR CON CONTRASEÑA ---
+  // --- LÓGICA DE FILTRADO INTELIGENTE ---
+  const filteredUsers = usuarios.filter((u) => {
+    // 1. Filtro de búsqueda (busca por nombre, usuario o correo)
+    const term = searchTerm.toLowerCase()
+    const matchesSearch = 
+      (u.name && u.name.toLowerCase().includes(term)) ||
+      (u.username && u.username.toLowerCase().includes(term)) ||
+      (u.email && u.email.toLowerCase().includes(term))
+
+    // 2. Filtro de departamento
+    const matchesDept = 
+      filterDept === 'TODOS' ? true : u.departments?.includes(filterDept)
+
+    return matchesSearch && matchesDept
+  })
+
   const confirmDelete = (user: any) => {
     setUserToDelete(user)
     setDeletePassword('')
@@ -45,12 +64,10 @@ export default function AdminPage() {
 
   const executeDelete = async (e: React.FormEvent) => {
     e.preventDefault()
-    
     if (deletePassword !== 'isAdmin02') {
       setDeleteError('Contraseña maestra incorrecta.')
       return
     }
-
     setIsDeleting(true)
     const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
     setIsDeleting(false)
@@ -103,6 +120,43 @@ export default function AdminPage() {
         </Button>
       </div>
 
+      {/* --- BARRA DE BÚSQUEDA Y FILTROS --- */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        {/* Buscador */}
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Buscar por nombre, usuario o correo..."
+            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-white/80 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 shadow-sm transition-all text-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Botones de Filtro (Tabs) */}
+        <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl">
+          {['TODOS', 'CAE', 'TI'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setFilterDept(tab as any)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                filterDept === tab
+                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
+                  : 'text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              {tab === 'TODOS' ? 'Todos' : tab === 'CAE' ? 'Solo CAE' : 'Solo TI'}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* TABLA */}
       <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -118,8 +172,10 @@ export default function AdminPage() {
             <tbody className="divide-y divide-slate-100 bg-white/40">
               {isLoading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">Cargando usuarios...</td></tr>
+              ) : filteredUsers.length === 0 ? (
+                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">No se encontraron usuarios con esos filtros.</td></tr>
               ) : (
-                usuarios.map((u) => (
+                filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-white/60 transition-colors">
                     <td className="p-4">
                       <div className="font-medium text-slate-900">{u.name}</div>
@@ -176,7 +232,7 @@ export default function AdminPage() {
         />
       </Modal>
 
-      {/* NUEVO: Modal con Contraseña para Eliminar */}
+      {/* Modal con Contraseña para Eliminar */}
       <Modal 
         isOpen={isDeleteModalOpen} 
         onClose={() => setIsDeleteModalOpen(false)} 
