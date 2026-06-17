@@ -9,8 +9,9 @@ import { useAuth } from '@/context/AuthContext'
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
-  const [username, setUsername] = useState('') 
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [selectedArea, setSelectedArea] = useState<'CAE' | 'TI'>('CAE') // <-- Nuevo estado para el selector
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -19,13 +20,14 @@ export default function LoginPage() {
     setError('')
     setIsLoading(true)
 
+    // Le mandamos el usuario, la contraseña y el área que eligió
+    const result = await login(username, password, selectedArea)
     
-    const success = await login(username, password)
-    
-    if (success) {
+    if (result.success) {
       router.push('/dashboard/global')
     } else {
-      setError('Usuario o contraseña incorrectos')
+      // Mostramos el error específico (contraseña mala o falta de permisos)
+      setError(result.error || 'Error al iniciar sesión')
     }
     
     setIsLoading(false)
@@ -39,16 +41,30 @@ export default function LoginPage() {
           <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-xl shadow-exodus-500/30">
             <span className="text-white font-bold text-3xl">E</span>
           </div>
-          <h1 className="mt-4 text-2xl font-bold text-slate-900">Exodus CAE</h1>
+          <h1 className="mt-4 text-2xl font-bold text-slate-900">Exodus</h1>
           <p className="mt-1 text-slate-500">Base de conocimiento interna</p>
         </div>
 
         {/* Login form */}
-        <div className="glass rounded-3xl p-8">
+        <div className="glass rounded-3xl p-8 shadow-xl shadow-slate-200/50">
           <form onSubmit={handleSubmit} className="space-y-5">
+            
+            {/* NUEVO SELECTOR DE ÁREA */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">Área de acceso</label>
+              <select 
+                value={selectedArea} 
+                onChange={(e) => setSelectedArea(e.target.value as 'CAE' | 'TI')} 
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-exodus-500/20 text-slate-700 font-medium transition-all"
+              >
+                <option value="CAE">Soporte CAE</option>
+                <option value="TI">Operaciones TI</option>
+              </select>
+            </div>
+
             <Input
               label="Usuario"
-              type="text" // Cambiamos de email a text
+              type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Ej: Rober CAE"
@@ -75,16 +91,14 @@ export default function LoginPage() {
               }
             />
 
-            <Button type="submit" className="w-full" size="lg" isLoading={isLoading}>
+            <Button type="submit" className="w-full mt-2" size="lg" isLoading={isLoading}>
               Iniciar sesión
             </Button>
           </form>
 
-          {/* Demo hint actualizado */}
           <div className="mt-6 p-4 rounded-xl bg-slate-50 border border-slate-100">
             <p className="text-xs text-slate-500 text-center">
-              Ingresa con tu nombre de usuario asignado. <br />
-              Ej: <span className="font-medium text-slate-700">Rober CAE</span>
+              Selecciona el área e ingresa con tu nombre de usuario asignado.
             </p>
           </div>
         </div>

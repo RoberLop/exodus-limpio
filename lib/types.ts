@@ -4,7 +4,8 @@ export interface User {
   email: string
   avatar?: string
   role: 'admin' | 'user'
-  department: 'CAE' | 'TI';
+  departments: ('CAE' | 'TI')[] 
+  department?: 'CAE' | 'TI'     
 }
 
 export type OperationalArea = 
