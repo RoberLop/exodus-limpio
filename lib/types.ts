@@ -4,10 +4,9 @@ export interface User {
   email: string
   avatar?: string
   role: 'admin' | 'user'
-  department: OperationalArea
+  department: 'CAE' | 'TI';
 }
 
-// Actualizamos la lista con las subcategorías y la sección de info
 export type OperationalArea = 
   | 'exodus' 
   | 'exodus_mostradores' 
@@ -25,6 +24,12 @@ export type OperationalArea =
   | 'admin' 
   | 'sistemas' 
   | 'full_info'
+  | 'categoria_1'
+  | 'categoria_2'
+  | 'categoria_3'
+  | 'categoria_4'
+  | 'categoria_5'
+  | 'categoria_6'
 
 export interface ErrorSolution {
   id: string

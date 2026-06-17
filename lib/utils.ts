@@ -22,6 +22,12 @@ export const areaLabels: Record<string, string> = {
   movil: 'Móvil',
   full_info: 'Informacion CAE',
   admin: 'Panel de Administrador',
+  categoria_1: 'Categoría 1',
+  categoria_2: 'Categoría 2',
+  categoria_3: 'Categoría 3',
+  categoria_4: 'Categoría 4',
+  categoria_5: 'Categoría 5',
+  categoria_6: 'Categoría 6',
 }
 
 export const areaIcons: Record<string, string> = {
@@ -41,6 +47,12 @@ export const areaIcons: Record<string, string> = {
   movil: '📱',
   full_info: '',
   admin: '⚙️',
+  categoria_1: '',
+  categoria_2: '',
+  categoria_3: '',
+  categoria_4: '',
+  categoria_5: '',
+  categoria_6: '',
 }
 
 export const areaColors: Record<string, string> = {
@@ -60,4 +72,10 @@ export const areaColors: Record<string, string> = {
   movil: 'from-sky-500 to-blue-600',
   full_info: 'from-cyan-500 to-blue-500',
   admin: 'from-slate-700 to-slate-900',
+  categoria_1: 'from-blue-500 to-indigo-600',
+  categoria_2: 'from-purple-500 to-fuchsia-600',
+  categoria_3: 'from-teal-500 to-emerald-600',
+  categoria_4: 'from-orange-500 to-red-600',
+  categoria_5: 'from-cyan-500 to-sky-600',
+  categoria_6: 'from-rose-500 to-pink-600'
 }

@@ -7,8 +7,8 @@ import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 
-const mainAreas: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
-const exodusSubAreas: OperationalArea[] = [
+const mainAreasCAE: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
+const exodusSubAreasCAE: OperationalArea[] = [
   'exodus_mostradores', 
   'exodus_sucursales', 
   'exodus_sucursales_sic', 
@@ -18,24 +18,40 @@ const exodusSubAreas: OperationalArea[] = [
   'exodus_epico'
 ]
 
+// Las nuevas áreas para TI
+const areasTI: OperationalArea[] = [
+  'categoria_1',
+  'categoria_2',
+  'categoria_3',
+  'categoria_4',
+  'categoria_5',
+  'categoria_6'
+]
+
 export function Sidebar() {
   const pathname = usePathname()
   const { user, logout, isAdmin } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
+  // Esta es la variable clave que define qué menú ver
+  const isTI = user?.department === 'TI'
+
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-72 p-4">
       <div className="h-full glass rounded-3xl flex flex-col overflow-hidden relative">
         
-        {/* Logo */}
+        {/* Logo dinámico */}
         <div className="p-6 border-b border-white/10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-lg shadow-exodus-500/30">
-              <span className="text-white font-bold text-lg">E</span>
+            <div className={cn(
+              "w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg",
+              isTI ? "bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-indigo-500/30" : "bg-gradient-to-br from-exodus-500 to-exodus-700 shadow-exodus-500/30"
+            )}>
+              <span className="text-white font-bold text-lg">{isTI ? 'TI' : 'E'}</span>
             </div>
             <div>
               <h1 className="text-lg font-semibold text-slate-900">Exodus</h1>
-              <p className="text-xs text-slate-500">Exodus-Cae</p>
+              <p className="text-xs text-slate-500">{isTI ? 'Operaciones TI' : 'Soporte CAE'}</p>
             </div>
           </div>
         </div>
@@ -43,7 +59,7 @@ export function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
           
-          {/* Soluciones Globales */}
+          {/* Soluciones Globales (Para Todos) */}
           <Link
             href="/dashboard/global"
             className={cn(
@@ -61,75 +77,92 @@ export function Sidebar() {
             Áreas Operativas
           </p>
           
-          {/* CARPETA DESPLEGABLE EXODUS */}
-          <div>
-            <button
-              onClick={() => setIsExodusOpen(!isExodusOpen)}
-              className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900"
-            >
-              <div className="flex items-center gap-3">
-                <span className="text-lg">{isExodusOpen ? '📂' : '📁'}</span>
-                <span>Exodus</span>
-              </div>
-              {/* FLECHA SVG ELEGANTE */}
-              <svg 
-                className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isExodusOpen ? "rotate-180" : "")} 
-                fill="none" viewBox="0 0 24 24" stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
+          {/* --- RENDERIZADO CONDICIONAL: SI ES CAE --- */}
+          {!isTI && (
+            <>
+              <div>
+                <button
+                  onClick={() => setIsExodusOpen(!isExodusOpen)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">{isExodusOpen ? '📂' : '📁'}</span>
+                    <span>Exodus</span>
+                  </div>
+                  <svg 
+                    className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isExodusOpen ? "rotate-180" : "")} 
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-            {/* Subcategorías de Exodus */}
-            {isExodusOpen && (
-              <div className="mt-1 mb-2 space-y-1 pl-4 border-l-2 border-slate-200/50 ml-5">
-                {exodusSubAreas.map((area) => {
-                  const isActive = pathname.includes(`/dashboard/${area}`)
-                  return (
-                    <Link
-                      key={area}
-                      href={`/dashboard/${area}`}
-                      className={cn(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200',
-                        'text-sm font-medium',
-                        isActive
-                          ? 'bg-white shadow-sm text-exodus-600'
-                          : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
-                      )}
-                    >
-                      <span className="truncate">{areaLabels[area]}</span>
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500 flex-shrink-0" />}
-                    </Link>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Resto de áreas normales */}
-          {mainAreas.map((area) => {
-            const isActive = pathname.includes(`/dashboard/${area}`)
-            return (
-              <Link
-                key={area}
-                href={`/dashboard/${area}`}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200',
-                  'text-sm font-medium',
-                  isActive
-                    ? 'bg-white shadow-md text-exodus-600'
-                    : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                {isExodusOpen && (
+                  <div className="mt-1 mb-2 space-y-1 pl-4 border-l-2 border-slate-200/50 ml-5">
+                    {exodusSubAreasCAE.map((area) => {
+                      const isActive = pathname.includes(`/dashboard/${area}`)
+                      return (
+                        <Link
+                          key={area}
+                          href={`/dashboard/${area}`}
+                          className={cn(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium',
+                            isActive ? 'bg-white shadow-sm text-exodus-600' : 'text-slate-500 hover:bg-white/50 hover:text-slate-800'
+                          )}
+                        >
+                          <span className="truncate">{areaLabels[area]}</span>
+                          {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500 flex-shrink-0" />}
+                        </Link>
+                      )
+                    })}
+                  </div>
                 )}
-              >
-                <span className="text-lg">{areaIcons[area]}</span>
-                <span>{areaLabels[area]}</span>
-                {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500" />
-                )}
-              </Link>
-            )
-          })}
+              </div>
 
+              {mainAreasCAE.map((area) => {
+                const isActive = pathname.includes(`/dashboard/${area}`)
+                return (
+                  <Link
+                    key={area}
+                    href={`/dashboard/${area}`}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium',
+                      isActive ? 'bg-white shadow-md text-exodus-600' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                    )}
+                  >
+                    <span className="text-lg">{areaIcons[area]}</span>
+                    <span>{areaLabels[area]}</span>
+                    {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500" />}
+                  </Link>
+                )
+              })}
+            </>
+          )}
+
+          {/* --- RENDERIZADO CONDICIONAL: SI ES TI --- */}
+          {isTI && (
+            <>
+              {areasTI.map((area) => {
+                const isActive = pathname.includes(`/dashboard/${area}`)
+                return (
+                  <Link
+                    key={area}
+                    href={`/dashboard/${area}`}
+                    className={cn(
+                      'flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium',
+                      isActive ? 'bg-white shadow-md text-indigo-600' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900'
+                    )}
+                  >
+                    <span className="text-lg">{areaIcons[area]}</span>
+                    <span>{areaLabels[area]}</span>
+                    {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />}
+                  </Link>
+                )
+              })}
+            </>
+          )}
+
+          {/* Info Full (Para Todos) */}
           <div className="pt-4 mt-4 border-t border-slate-200/50">
             <Link
               href="/dashboard/full_info"
@@ -141,11 +174,11 @@ export function Sidebar() {
               )}
             >
               <span className="text-lg">{areaIcons['full_info']}</span>
-              <span>{areaLabels['full_info']}</span>
+              <span>{isTI ? 'Información TI' : areaLabels['full_info']}</span>
             </Link>
           </div>
 
-          {/* Administración */}
+          {/* Administración (Para Todos los admins) */}
           {isAdmin && (
             <>
               <div className="pt-4">
@@ -190,7 +223,7 @@ export function Sidebar() {
                 {user?.name}
               </p>
               <p className="text-xs text-slate-500 truncate">
-                {isAdmin ? 'Administrador' : 'Usuario'}
+                {isAdmin ? 'Administrador' : 'Usuario'} • {isTI ? 'TI' : 'CAE'}
               </p>
             </div>
             <button
@@ -205,7 +238,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* --- NUEVA FIRMA --- */}
+        {/* Firma de creador */}
         <div className="pb-3 pt-1 text-center opacity-60 hover:opacity-100 transition-opacity">
           <p className="text-[10px] font-medium text-slate-500 tracking-wide">
             &lt;/&gt; Desarrollado por Rober López
