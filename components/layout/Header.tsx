@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
-import { NewErrorForm } from '@/components/forms/NewErrorForm' // Ajusta si tu ruta es diferente
+import { NewErrorForm } from '@/components/forms/NewErrorForm' 
 import { useAuth } from '@/context/AuthContext'
 import { areaLabels } from '@/lib/utils'
 import { OperationalArea } from '@/lib/types'
@@ -12,8 +12,8 @@ interface HeaderProps {
   area: OperationalArea
   errorCount: number
   onAddError?: (data: any) => void
-  searchTerm?: string // <-- NUEVO: Recibe el texto
-  onSearchChange?: (value: string) => void // <-- NUEVO: Avisa cuando cambia
+  searchTerm?: string 
+  onSearchChange?: (value: string) => void 
 }
 
 export function Header({ area, errorCount, onAddError, searchTerm = '', onSearchChange }: HeaderProps) {
@@ -33,7 +33,7 @@ export function Header({ area, errorCount, onAddError, searchTerm = '', onSearch
         </div>
 
         <div className="flex items-center gap-3">
-          {/* --- TU BUSCADOR CONECTADO --- */}
+          {}
           <div className="relative">
             <input
               type="text"

@@ -13,7 +13,7 @@
   --color-exodus-900: #0c4a6e;
 }
 
-/* Efectos visuales de Apple y tarjetas 3D en CSS puro e inquebrantable */
+
 .glass {
   background-color: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(24px);

@@ -6,7 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Exodus KB - Base de Conocimiento',
+  title: 'Soporte - Base de Conocimiento',
   description: 'Sistema interno de documentación de errores',
 }
 

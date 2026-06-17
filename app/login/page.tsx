@@ -32,7 +32,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
+    <div className="min-h-screen flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
@@ -89,7 +89,13 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Firma de creador */}
+      <div className="fixed bottom-4 right-6 opacity-50 hover:opacity-100 transition-opacity z-50 pointer-events-none">
+        <p className="text-[11px] font-medium text-slate-500 tracking-wide">
+          &lt;/&gt; Desarrollado por Rober López
+        </p>
+      </div>
     </div>
   )
 }
-
