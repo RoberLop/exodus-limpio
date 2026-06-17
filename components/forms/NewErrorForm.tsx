@@ -195,8 +195,8 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
-      {/* --- 2. AQUÍ ESTÁ LA MAGIA VISUAL: LOS MENÚS NUEVOS --- */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         
         <Select 
           label="Área Operativa" 
