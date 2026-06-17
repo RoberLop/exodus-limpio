@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { User, AuthState } from '@/lib/types'
 
 interface AuthContextType extends AuthState {
-  // Ahora el login recibe el área y devuelve un mensaje de error si algo falla
   login: (username: string, password: string, area: 'CAE' | 'TI') => Promise<{success: boolean, error?: string}>
   logout: () => void
   isAdmin: boolean
@@ -29,7 +28,7 @@ const mockUsers: Record<string, Omit<User, 'department'>> = {
   'edgar cae': { id: '13', name: 'Edgar CAE', email: 'edgar@exodus.com', role: 'user', departments: ['CAE'] },
   'cristhian cae': { id: '14', name: 'Cristhian CAE', email: 'cristhian@exodus.com', role: 'user', departments: ['CAE'] },
   
-  // TÚ: Tienes acceso a AMBOS departamentos
+  //  acceso a AMBOS departamentos
   'rober cae': { id: '9', name: 'Rober López', email: 'rober@exodus.com', role: 'admin', departments: ['CAE', 'TI'] },
   'admin': { id: '1', name: 'ADMIN CAE', email: 'admin@exodus.com', role: 'admin', departments: ['CAE', 'TI'] },
 

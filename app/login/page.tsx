@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import { Select } from '@/components/ui/Select' // <-- Importamos tu nuevo componente de lujo
 import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
@@ -11,7 +12,7 @@ export default function LoginPage() {
   const { login } = useAuth()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
-  const [selectedArea, setSelectedArea] = useState<'CAE' | 'TI'>('CAE') // <-- Nuevo estado para el selector
+  const [selectedArea, setSelectedArea] = useState<'CAE' | 'TI'>('CAE')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
 
@@ -20,23 +21,26 @@ export default function LoginPage() {
     setError('')
     setIsLoading(true)
 
-    // Le mandamos el usuario, la contraseña y el área que eligió
     const result = await login(username, password, selectedArea)
     
     if (result.success) {
       router.push('/dashboard/global')
     } else {
-      // Mostramos el error específico (contraseña mala o falta de permisos)
       setError(result.error || 'Error al iniciar sesión')
     }
     
     setIsLoading(false)
   }
 
+  // Opciones para nuestro nuevo Select
+  const loginOptions = [
+    { value: 'CAE', label: 'Soporte CAE' },
+    { value: 'TI', label: 'Operaciones TI' }
+  ]
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative">
       <div className="w-full max-w-md">
-        {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto rounded-3xl bg-gradient-to-br from-exodus-500 to-exodus-700 flex items-center justify-center shadow-xl shadow-exodus-500/30">
             <span className="text-white font-bold text-3xl">E</span>
@@ -45,22 +49,16 @@ export default function LoginPage() {
           <p className="mt-1 text-slate-500">Base de conocimiento interna</p>
         </div>
 
-        {/* Login form */}
         <div className="glass rounded-3xl p-8 shadow-xl shadow-slate-200/50">
           <form onSubmit={handleSubmit} className="space-y-5">
             
-            {/* NUEVO SELECTOR DE ÁREA */}
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">Área de acceso</label>
-              <select 
-                value={selectedArea} 
-                onChange={(e) => setSelectedArea(e.target.value as 'CAE' | 'TI')} 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-exodus-500/20 text-slate-700 font-medium transition-all"
-              >
-                <option value="CAE">Soporte CAE</option>
-                <option value="TI">Operaciones TI</option>
-              </select>
-            </div>
+            {/* EL NUEVO MENU DESPLEGABLE */}
+            <Select 
+              label="Área de acceso"
+              value={selectedArea}
+              onChange={(val) => setSelectedArea(val as 'CAE' | 'TI')}
+              options={loginOptions}
+            />
 
             <Input
               label="Usuario"
@@ -70,9 +68,7 @@ export default function LoginPage() {
               placeholder="Ej: Rober CAE"
               required
               icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" /></svg>
               }
             />
 
@@ -85,9 +81,7 @@ export default function LoginPage() {
               required
               error={error}
               icon={
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
               }
             />
 
@@ -104,7 +98,6 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Firma de creador */}
       <div className="fixed bottom-4 right-6 opacity-50 hover:opacity-100 transition-opacity z-50 pointer-events-none">
         <p className="text-[11px] font-medium text-slate-500 tracking-wide">
           &lt;/&gt; Desarrollado por Rober López
