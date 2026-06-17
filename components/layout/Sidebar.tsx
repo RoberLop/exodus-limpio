@@ -25,7 +25,7 @@ export function Sidebar() {
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-72 p-4">
-      <div className="h-full glass rounded-3xl flex flex-col overflow-hidden">
+      <div className="h-full glass rounded-3xl flex flex-col overflow-hidden relative">
         
         {/* Logo */}
         <div className="p-6 border-b border-white/10">
@@ -204,6 +204,14 @@ export function Sidebar() {
             </button>
           </div>
         </div>
+
+        {/* --- NUEVA FIRMA --- */}
+        <div className="pb-3 pt-1 text-center opacity-60 hover:opacity-100 transition-opacity">
+          <p className="text-[10px] font-medium text-slate-500 tracking-wide">
+            &lt;/&gt; Desarrollado por Rober López
+          </p>
+        </div>
+
       </div>
     </aside>
   )
