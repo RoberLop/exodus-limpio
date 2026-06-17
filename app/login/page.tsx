@@ -9,7 +9,7 @@ import { useAuth } from '@/context/AuthContext'
 export default function LoginPage() {
   const router = useRouter()
   const { login } = useAuth()
-  const [username, setUsername] = useState('') // Cambiamos email por username
+  const [username, setUsername] = useState('') 
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -19,11 +19,11 @@ export default function LoginPage() {
     setError('')
     setIsLoading(true)
 
-    // Ahora le pasamos el username
+    
     const success = await login(username, password)
     
     if (success) {
-      router.push('/dashboard/credito')
+      router.push('/dashboard/global')
     } else {
       setError('Usuario o contraseña incorrectos')
     }
