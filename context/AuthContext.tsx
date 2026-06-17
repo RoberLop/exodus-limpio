@@ -29,11 +29,11 @@ const mockUsers: Record<string, User> = {
   'edgar cae': { id: '13', name: 'Edgar CAE', email: 'edgar@exodus.com', role: 'user', department: 'CAE' },
   'cristhian cae': { id: '14', name: 'Cristhian CAE', email: 'cristhian@exodus.com', role: 'user', department: 'CAE' },
   
-  // Nuevo Equipo TI (De prueba para tu jefe)
+  // Nuevo Equipo TI
   'admin ti': { id: '15', name: 'Jefe Operaciones TI', email: 'ti@exodus.com', role: 'admin', department: 'TI' }
 }
 
-// --- CONTRASEÑAS ASIGNADAS ---
+
 const userPasswords: Record<string, string> = {
   'admin cae': 'alfa123',
   'sergio cae': 'tigre45',
@@ -50,8 +50,8 @@ const userPasswords: Record<string, string> = {
   'edgar cae': 'mapa31',
   'cristhian cae': 'gato64',
   
-  // Contraseña del nuevo usuario TI
-  'jefe ti': 'admin123'
+
+  'admin ti': 'alfa123'
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
