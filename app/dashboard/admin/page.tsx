@@ -110,13 +110,13 @@ export default function AdminPage() {
           onClick={() => setActiveTab('usuarios')}
           className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'usuarios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          👤 Equipo y Accesos
+           Equipo y Accesos
         </button>
         <button 
           onClick={() => setActiveTab('anuncios')}
           className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'anuncios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
         >
-          📢 Comunicados
+           Comunicados
         </button>
       </div>
 
@@ -190,7 +190,7 @@ export default function AdminPage() {
                     <td className="p-4"><span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 border">{a.departamento}</span></td>
                     <td className="p-4">{a.importancia === 'Alta' ? <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded-lg">🔥 Alta</span> : <span className="text-slate-500 text-xs">Normal</span>}</td>
                     <td className="p-4 text-right">
-                      <button onClick={() => openEditAnuncioModal(a)} className="p-2 text-slate-400 hover:text-exodus-600">✏️</button>
+                      <button onClick={() => openEditAnuncioModal(a)} className="p-2 text-slate-400 hover:text-exodus-600">✎</button>
                       <button onClick={() => { setAnuncioToDelete(a); setIsDeleteAnuncioModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
                     </td>
                   </tr>
