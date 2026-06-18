@@ -6,26 +6,30 @@ import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { AdminUserForm } from '@/components/forms/AdminUserForm'
+import { AdminAnnounceForm } from '@/components/forms/AdminAnnounceForm' // <-- Importamos tu nuevo formulario
 
 export default function AdminPage() {
   const { isAdmin } = useAuth()
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true)
   
-  // --- NUEVOS ESTADOS PARA BÚSQUEDA Y FILTROS ---
+  // Filtros
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<'TODOS' | 'CAE' | 'TI'>('TODOS')
 
-  // Estados para el Modal de Crear/Editar
+  // Modal de Usuarios
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
 
-  // Estados para el Modal de ELIMINAR
+  // Modal de Eliminar
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<any | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
+
+  // NUEVO: Modal de Anuncios
+  const [isAnnounceModalOpen, setIsAnnounceModalOpen] = useState(false)
 
   useEffect(() => {
     if (isAdmin) fetchUsuarios()
@@ -46,10 +50,7 @@ export default function AdminPage() {
       (u.username && u.username.toLowerCase().includes(term)) ||
       (u.email && u.email.toLowerCase().includes(term))
 
-    // 2. Filtro de departamento
-    const matchesDept = 
-      filterDept === 'TODOS' ? true : u.departments?.includes(filterDept)
-
+    const matchesDept = filterDept === 'TODOS' ? true : u.departments?.includes(filterDept)
     return matchesSearch && matchesDept
   })
 
@@ -113,14 +114,20 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
           <p className="mt-1 text-sm text-slate-500">Administra los accesos, roles y contraseñas del equipo.</p>
         </div>
-        <Button onClick={openNewUserModal}>
-          + Nuevo Usuario
-        </Button>
+        
+        {/* BOTONES PRINCIPALES */}
+        <div className="flex gap-3">
+          <Button variant="secondary" onClick={() => setIsAnnounceModalOpen(true)}>
+            📢 Nuevo Anuncio
+          </Button>
+          <Button onClick={openNewUserModal}>
+            + Nuevo Usuario
+          </Button>
+        </div>
       </div>
 
-      {/* --- BARRA DE BÚSQUEDA Y FILTROS --- */}
+      {/* BARRA DE BÚSQUEDA Y FILTROS */}
       <div className="flex flex-col sm:flex-row gap-4">
-        {/* Buscador */}
         <div className="relative flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
             <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -130,22 +137,19 @@ export default function AdminPage() {
           <input
             type="text"
             placeholder="Buscar por nombre, usuario o correo..."
-            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-white/80 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 shadow-sm transition-all text-sm"
+            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20 shadow-sm transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 
-        {/* Botones de Filtro (Tabs) */}
         <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl">
           {['TODOS', 'CAE', 'TI'].map((tab) => (
             <button
               key={tab}
               onClick={() => setFilterDept(tab as any)}
               className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                filterDept === tab
-                  ? 'bg-white text-slate-800 shadow-sm border border-slate-200/50'
-                  : 'text-slate-500 hover:text-slate-700'
+                filterDept === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {tab === 'TODOS' ? 'Todos' : tab === 'CAE' ? 'Solo CAE' : 'Solo TI'}
@@ -171,7 +175,7 @@ export default function AdminPage() {
               {isLoading ? (
                 <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">Cargando usuarios...</td></tr>
               ) : filteredUsers.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">No se encontraron usuarios con esos filtros.</td></tr>
+                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">No se encontraron usuarios.</td></tr>
               ) : (
                 filteredUsers.map((u) => (
                   <tr key={u.id} className="hover:bg-white/60 transition-colors">
@@ -196,14 +200,10 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4 text-right">
                       <button onClick={() => openEditUserModal(u)} className="p-2 text-slate-400 hover:text-exodus-600 transition-colors" title="Editar usuario">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                        </svg>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                       </button>
                       <button onClick={() => confirmDelete(u)} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar usuario">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                       </button>
                     </td>
                   </tr>
@@ -214,66 +214,40 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Modal para Crear/Editar Usuario */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={closeModal} 
-        title={editingUser ? "Editar Usuario" : "Nuevo Usuario"}
-      >
-        <AdminUserForm 
-          initialData={editingUser}
-          onSuccess={() => {
-            closeModal()
-            fetchUsuarios() 
-          }}
-          onCancel={closeModal}
-        />
+      {/* MODAL: CREAR/EDITAR USUARIO */}
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingUser ? "Editar Usuario" : "Nuevo Usuario"}>
+        <AdminUserForm initialData={editingUser} onSuccess={() => { closeModal(); fetchUsuarios(); }} onCancel={closeModal} />
       </Modal>
 
-      {/* Modal con Contraseña para Eliminar */}
-      <Modal 
-        isOpen={isDeleteModalOpen} 
-        onClose={() => setIsDeleteModalOpen(false)} 
-        title={`Eliminar usuario: ${userToDelete?.name}`}
-      >
+      {/* MODAL: ELIMINAR USUARIO */}
+      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title={`Eliminar usuario: ${userToDelete?.name}`}>
         <form onSubmit={executeDelete} className="text-center space-y-6 py-4">
           <div>
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
-            <p className="text-sm text-slate-500 mt-2 px-4">
-              Ingresa la contraseña maestra para eliminar este usuario del sistema de forma permanente.
-            </p>
+            <p className="text-sm text-slate-500 mt-2 px-4">Ingresa la contraseña maestra para eliminar permanentemente al usuario.</p>
           </div>
-
           <div className="max-w-xs mx-auto">
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={deletePassword}
-              onChange={(e) => setDeletePassword(e.target.value)}
-              className="w-full px-4 py-3 text-center tracking-[0.3em] rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none"
-              autoFocus
-            />
-            {deleteError && (
-              <p className="text-red-500 text-xs mt-2 font-medium animate-in fade-in slide-in-from-top-1">
-                {deleteError}
-              </p>
-            )}
+            <input type="password" placeholder="••••••••" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-4 py-3 text-center tracking-[0.3em] rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none" autoFocus />
+            {deleteError && <p className="text-red-500 text-xs mt-2 font-medium">{deleteError}</p>}
           </div>
-
           <div className="flex justify-center gap-3 pt-4 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>
-              Cancelar
-            </Button>
-            <button
-              type="submit"
-              disabled={isDeleting || !deletePassword}
-              className="px-6 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm shadow-red-500/30 disabled:opacity-50"
-            >
-              {isDeleting ? 'Borrando...' : 'Sí, borrar'}
-            </button>
+            <Button type="button" variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
+            <button type="submit" disabled={isDeleting || !deletePassword} className="px-6 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50">{isDeleting ? 'Borrando...' : 'Sí, borrar'}</button>
           </div>
         </form>
       </Modal>
+
+      {/* NUEVO MODAL: PUBLICAR ANUNCIO */}
+      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title="Publicar Anuncio">
+        <AdminAnnounceForm 
+          onSuccess={() => {
+            setIsAnnounceModalOpen(false)
+            alert('Anuncio publicado con éxito en la base de datos 🚀')
+          }} 
+          onCancel={() => setIsAnnounceModalOpen(false)} 
+        />
+      </Modal>
+
     </div>
   )
 }
