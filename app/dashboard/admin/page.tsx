@@ -6,246 +6,231 @@ import { useAuth } from '@/context/AuthContext'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { AdminUserForm } from '@/components/forms/AdminUserForm'
-import { AdminAnnounceForm } from '@/components/forms/AdminAnnounceForm' // <-- Importamos tu nuevo formulario
+import { AdminAnnounceForm } from '@/components/forms/AdminAnnounceForm'
 
 export default function AdminPage() {
   const { isAdmin } = useAuth()
-  const [usuarios, setUsuarios] = useState<any[]>([])
-  const [isLoading, setIsLoading] = useState(true)
   
-  // Filtros
+  // Pestañas (Tabs)
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'anuncios'>('usuarios')
+
+  // Estados de Usuarios
+  const [usuarios, setUsuarios] = useState<any[]>([])
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<'TODOS' | 'CAE' | 'TI'>('TODOS')
-
-  // Modal de Usuarios
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
-
-  // Modal de Eliminar
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<any | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
-  const [isDeleting, setIsDeleting] = useState(false)
 
-  // NUEVO: Modal de Anuncios
+  // Estados de Anuncios
+  const [anuncios, setAnuncios] = useState<any[]>([])
+  const [isLoadingAnuncios, setIsLoadingAnuncios] = useState(true)
   const [isAnnounceModalOpen, setIsAnnounceModalOpen] = useState(false)
+  const [editingAnuncio, setEditingAnuncio] = useState<any | null>(null)
+  const [isDeleteAnuncioModalOpen, setIsDeleteAnuncioModalOpen] = useState(false)
+  const [anuncioToDelete, setAnuncioToDelete] = useState<any | null>(null)
 
   useEffect(() => {
-    if (isAdmin) fetchUsuarios()
+    if (isAdmin) {
+      fetchUsuarios()
+      fetchAnuncios()
+    }
   }, [isAdmin])
 
+  // --- LÓGICA DE USUARIOS ---
   const fetchUsuarios = async () => {
-    setIsLoading(true)
-    const { data, error } = await supabase.from('usuarios').select('*').order('id', { ascending: true })
-    if (error) console.error('Error al cargar usuarios:', error)
-    else if (data) setUsuarios(data)
-    setIsLoading(false)
+    setIsLoadingUsers(true)
+    const { data } = await supabase.from('usuarios').select('*').order('id', { ascending: true })
+    if (data) setUsuarios(data)
+    setIsLoadingUsers(false)
   }
+
+  const executeDeleteUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (deletePassword !== 'isAdmin02') { setDeleteError('Contraseña incorrecta.'); return; }
+    const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
+    if (!error) { setIsDeleteUserModalOpen(false); fetchUsuarios(); }
+  }
+
+  // --- LÓGICA DE ANUNCIOS ---
+  const fetchAnuncios = async () => {
+    setIsLoadingAnuncios(true)
+    const { data } = await supabase.from('anuncios').select('*').order('created_at', { ascending: false })
+    if (data) setAnuncios(data)
+    setIsLoadingAnuncios(false)
+  }
+
+  const executeDeleteAnuncio = async () => {
+    const { error } = await supabase.from('anuncios').delete().eq('id', anuncioToDelete.id)
+    if (!error) { setIsDeleteAnuncioModalOpen(false); fetchAnuncios(); }
+  }
+
+  const openNewAnuncioModal = () => { setEditingAnuncio(null); setIsAnnounceModalOpen(true); }
+  const openEditAnuncioModal = (anuncio: any) => { setEditingAnuncio(anuncio); setIsAnnounceModalOpen(true); }
 
   const filteredUsers = usuarios.filter((u) => {
     const term = searchTerm.toLowerCase()
-    const matchesSearch = 
-      (u.name && u.name.toLowerCase().includes(term)) ||
-      (u.username && u.username.toLowerCase().includes(term)) ||
-      (u.email && u.email.toLowerCase().includes(term))
-
-    const matchesDept = filterDept === 'TODOS' ? true : u.departments?.includes(filterDept)
-    return matchesSearch && matchesDept
+    const matchSearch = (u.name?.toLowerCase().includes(term)) || (u.username?.toLowerCase().includes(term))
+    const matchDept = filterDept === 'TODOS' ? true : u.departments?.includes(filterDept)
+    return matchSearch && matchDept
   })
 
-  const confirmDelete = (user: any) => {
-    setUserToDelete(user)
-    setDeletePassword('')
-    setDeleteError('')
-    setIsDeleteModalOpen(true)
-  }
-
-  const executeDelete = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (deletePassword !== 'isAdmin02') {
-      setDeleteError('Contraseña maestra incorrecta.')
-      return
-    }
-    setIsDeleting(true)
-    const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
-    setIsDeleting(false)
-
-    if (error) {
-      alert('Error al eliminar: ' + error.message)
-    } else {
-      setIsDeleteModalOpen(false)
-      setUserToDelete(null)
-      fetchUsuarios()
-    }
-  }
-
-  const openNewUserModal = () => {
-    setEditingUser(null)
-    setIsModalOpen(true)
-  }
-
-  const openEditUserModal = (user: any) => {
-    setEditingUser(user)
-    setIsModalOpen(true)
-  }
-
-  const closeModal = () => {
-    setIsModalOpen(false)
-    setEditingUser(null)
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
-          <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-        </div>
-        <h2 className="text-xl font-bold text-slate-800">Acceso Denegado</h2>
-        <p className="text-slate-500">No tienes permisos para ver esta página.</p>
-      </div>
-    )
-  }
+  if (!isAdmin) return null // Redirección o UI de denegado
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
+      
+      {/* HEADER DINÁMICO */}
       <div className="flex justify-between items-end">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Gestión de Usuarios</h1>
-          <p className="mt-1 text-sm text-slate-500">Administra los accesos, roles y contraseñas del equipo.</p>
+          <h1 className="text-2xl font-bold text-slate-900">
+            {activeTab === 'usuarios' ? 'Gestión de Usuarios' : 'Tablero de Anuncios'}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            {activeTab === 'usuarios' 
+              ? 'Administra los accesos, roles y contraseñas del equipo.' 
+              : 'Crea, edita o elimina los avisos que ve el personal.'}
+          </p>
         </div>
         
-        {/* BOTONES PRINCIPALES */}
-        <div className="flex gap-3">
-          <Button variant="secondary" onClick={() => setIsAnnounceModalOpen(true)}>
-            📢 Nuevo Anuncio
-          </Button>
-          <Button onClick={openNewUserModal}>
-            + Nuevo Usuario
-          </Button>
-        </div>
+        {activeTab === 'usuarios' ? (
+          <Button onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}>+ Nuevo Usuario</Button>
+        ) : (
+          <Button onClick={openNewAnuncioModal}> Nuevo Anuncio</Button>
+        )}
       </div>
 
-      {/* BARRA DE BÚSQUEDA Y FILTROS */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="relative flex-1">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <svg className="h-5 w-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
+      {/* PESTAÑAS (TABS) */}
+      <div className="flex gap-6 border-b border-slate-200/60 pb-px">
+        <button 
+          onClick={() => setActiveTab('usuarios')}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'usuarios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          👤 Equipo y Accesos
+        </button>
+        <button 
+          onClick={() => setActiveTab('anuncios')}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'anuncios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+        >
+          📢 Comunicados
+        </button>
+      </div>
+
+      {/* VISTA DE USUARIOS */}
+      {activeTab === 'usuarios' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="relative flex-1">
+              <input type="text" placeholder="Buscar usuario..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
+            </div>
+            <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl">
+              {['TODOS', 'CAE', 'TI'].map((tab) => (
+                <button key={tab} onClick={() => setFilterDept(tab as any)} className={`px-4 py-1.5 rounded-lg text-sm font-bold ${filterDept === tab ? 'bg-white shadow-sm' : 'text-slate-500'}`}>{tab}</button>
+              ))}
+            </div>
           </div>
-          <input
-            type="text"
-            placeholder="Buscar por nombre, usuario o correo..."
-            className="block w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-xl bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20 shadow-sm transition-all"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-
-        <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl">
-          {['TODOS', 'CAE', 'TI'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setFilterDept(tab as any)}
-              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                filterDept === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
-              }`}
-            >
-              {tab === 'TODOS' ? 'Todos' : tab === 'CAE' ? 'Solo CAE' : 'Solo TI'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* TABLA */}
-      <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50/50 border-b border-slate-200/60">
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Nombre y Correo</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Usuario (Login)</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Rol</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">Accesos</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase tracking-wider text-right">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 bg-white/40">
-              {isLoading ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">Cargando usuarios...</td></tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr><td colSpan={5} className="p-8 text-center text-slate-400 font-medium">No se encontraron usuarios.</td></tr>
-              ) : (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/60 transition-colors">
+          
+          <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-200/60 text-xs text-slate-500 uppercase">
+                  <th className="p-4">Nombre</th>
+                  <th className="p-4">Usuario</th>
+                  <th className="p-4">Rol / Accesos</th>
+                  <th className="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white/40">
+                {isLoadingUsers ? <tr><td colSpan={4} className="p-8 text-center text-slate-400">Cargando...</td></tr> : filteredUsers.map((u) => (
+                  <tr key={u.id} className="hover:bg-white/60">
+                    <td className="p-4"><div className="font-medium">{u.name}</div><div className="text-xs text-slate-500">{u.email}</div></td>
+                    <td className="p-4 text-sm font-medium">{u.username}</td>
                     <td className="p-4">
-                      <div className="font-medium text-slate-900">{u.name}</div>
-                      <div className="text-xs text-slate-500">{u.email || 'Sin correo'}</div>
-                    </td>
-                    <td className="p-4 text-sm text-slate-600 font-medium">{u.username}</td>
-                    <td className="p-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-bold border ${u.role === 'admin' ? 'bg-purple-50 text-purple-600 border-purple-200' : 'bg-slate-50 text-slate-600 border-slate-200'}`}>
-                        {u.role === 'admin' ? 'Administrador' : 'Usuario'}
-                      </span>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {u.departments?.map((dep: string) => (
-                          <span key={dep} className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${dep === 'CAE' ? 'bg-exodus-50 text-exodus-600 border-exodus-200' : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}>
-                            {dep}
-                          </span>
-                        ))}
+                      <div className="flex gap-1 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-slate-100 border">{u.role}</span>
+                        {u.departments?.map((d: string) => <span key={d} className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-exodus-50 text-exodus-600 border">{d}</span>)}
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      <button onClick={() => openEditUserModal(u)} className="p-2 text-slate-400 hover:text-exodus-600 transition-colors" title="Editar usuario">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                      </button>
-                      <button onClick={() => confirmDelete(u)} className="p-2 text-slate-400 hover:text-red-500 transition-colors" title="Eliminar usuario">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                      </button>
+                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-exodus-600">✏️</button>
+                      <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* MODAL: CREAR/EDITAR USUARIO */}
-      <Modal isOpen={isModalOpen} onClose={closeModal} title={editingUser ? "Editar Usuario" : "Nuevo Usuario"}>
-        <AdminUserForm initialData={editingUser} onSuccess={() => { closeModal(); fetchUsuarios(); }} onCancel={closeModal} />
+      {/* VISTA DE ANUNCIOS */}
+      {activeTab === 'anuncios' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-200/60 text-xs text-slate-500 uppercase">
+                  <th className="p-4">Anuncio</th>
+                  <th className="p-4">Dirigido a</th>
+                  <th className="p-4">Importancia</th>
+                  <th className="p-4 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white/40">
+                {isLoadingAnuncios ? <tr><td colSpan={4} className="p-8 text-center text-slate-400">Cargando...</td></tr> : anuncios.map((a) => (
+                  <tr key={a.id} className="hover:bg-white/60">
+                    <td className="p-4 max-w-xs">
+                      <div className="font-bold text-slate-900 truncate">{a.titulo}</div>
+                      <div className="text-xs text-slate-500 truncate mt-0.5">{a.mensaje}</div>
+                    </td>
+                    <td className="p-4"><span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 border">{a.departamento}</span></td>
+                    <td className="p-4">{a.importancia === 'Alta' ? <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded-lg">🔥 Alta</span> : <span className="text-slate-500 text-xs">Normal</span>}</td>
+                    <td className="p-4 text-right">
+                      <button onClick={() => openEditAnuncioModal(a)} className="p-2 text-slate-400 hover:text-exodus-600">✏️</button>
+                      <button onClick={() => { setAnuncioToDelete(a); setIsDeleteAnuncioModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* --- ZONA DE MODALES --- */}
+      
+      {/* Modal Usuarios */}
+      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? "Editar Usuario" : "Nuevo Usuario"}>
+        <AdminUserForm initialData={editingUser} onSuccess={() => { setIsUserModalOpen(false); fetchUsuarios(); }} onCancel={() => setIsUserModalOpen(false)} />
       </Modal>
 
-      {/* MODAL: ELIMINAR USUARIO */}
-      <Modal isOpen={isDeleteModalOpen} onClose={() => setIsDeleteModalOpen(false)} title={`Eliminar usuario: ${userToDelete?.name}`}>
-        <form onSubmit={executeDelete} className="text-center space-y-6 py-4">
-          <div>
-            <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
-            <p className="text-sm text-slate-500 mt-2 px-4">Ingresa la contraseña maestra para eliminar permanentemente al usuario.</p>
-          </div>
-          <div className="max-w-xs mx-auto">
-            <input type="password" placeholder="••••••••" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-4 py-3 text-center tracking-[0.3em] rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all outline-none" autoFocus />
-            {deleteError && <p className="text-red-500 text-xs mt-2 font-medium">{deleteError}</p>}
-          </div>
-          <div className="flex justify-center gap-3 pt-4 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={() => setIsDeleteModalOpen(false)}>Cancelar</Button>
-            <button type="submit" disabled={isDeleting || !deletePassword} className="px-6 py-2.5 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors shadow-sm disabled:opacity-50">{isDeleting ? 'Borrando...' : 'Sí, borrar'}</button>
-          </div>
+      {/* Modal Anuncios */}
+      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title={editingAnuncio ? "Editar Anuncio" : "Nuevo Anuncio"}>
+        <AdminAnnounceForm initialData={editingAnuncio} onSuccess={() => { setIsAnnounceModalOpen(false); fetchAnuncios(); }} onCancel={() => setIsAnnounceModalOpen(false)} />
+      </Modal>
+
+      {/* Modal Eliminar Usuario (CON Contraseña) */}
+      <Modal isOpen={isDeleteUserModalOpen} onClose={() => setIsDeleteUserModalOpen(false)} title={`Eliminar a ${userToDelete?.name}`}>
+        <form onSubmit={executeDeleteUser} className="text-center py-4">
+          <input type="password" placeholder="Contraseña maestra" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-4 py-3 text-center tracking-widest rounded-xl border mb-4" autoFocus />
+          {deleteError && <p className="text-red-500 text-xs mb-4">{deleteError}</p>}
+          <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">Sí, eliminar usuario</Button>
         </form>
       </Modal>
 
-      {/* NUEVO MODAL: PUBLICAR ANUNCIO */}
-      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title="Publicar Anuncio">
-        <AdminAnnounceForm 
-          onSuccess={() => {
-            setIsAnnounceModalOpen(false)
-            alert('Anuncio publicado con éxito en la base de datos 🚀')
-          }} 
-          onCancel={() => setIsAnnounceModalOpen(false)} 
-        />
+      {/* Modal Eliminar Anuncio (SIN Contraseña, más rápido) */}
+      <Modal isOpen={isDeleteAnuncioModalOpen} onClose={() => setIsDeleteAnuncioModalOpen(false)} title="Eliminar Anuncio">
+        <div className="text-center py-4 space-y-4">
+          <p className="text-sm text-slate-500">¿Estás seguro de que deseas eliminar este anuncio? Desaparecerá del tablero de todos inmediatamente.</p>
+          <div className="flex gap-3">
+            <Button variant="secondary" className="flex-1" onClick={() => setIsDeleteAnuncioModalOpen(false)}>Cancelar</Button>
+            <button onClick={executeDeleteAnuncio} className="flex-1 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700">Sí, borrar</button>
+          </div>
+        </div>
       </Modal>
 
     </div>
