@@ -37,8 +37,14 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
   const isEditing = !!initialData?.id
   const fileInputRef = useRef<HTMLInputElement>(null)
+  
+  // --- NUEVOS ESTADOS PARA SUBIR ARCHIVOS (Word, Excel, PDF) ---
+  const documentInputRef = useRef<HTMLInputElement>(null)
+  const [attachedFile, setAttachedFile] = useState<File | null>(null)
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(
+    initialData?.archivo_url ? 'Documento adjunto existente' : null
+  )
 
-  // --- 1. AQUÍ CREAMOS LAS OPCIONES PARA TUS NUEVOS MENÚS ---
   const areaGroups = user?.department === 'TI'
     ? [
         {
@@ -95,6 +101,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     { value: 'Sistemas', label: 'Sistemas' }
   ]
 
+  // Handler para la imagen de captura de pantalla
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -103,6 +110,15 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         setPreview(reader.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  // NUEVO: Handler para el documento (PDF, Excel, Word)
+  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setAttachedFile(file)
+      setAttachedFileName(file.name)
     }
   }
 
@@ -122,6 +138,29 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     e.preventDefault()
     setIsLoading(true)
     
+    let finalArchivoUrl = initialData?.archivo_url || null
+
+    // --- MAGIA: SUBIR EL DOCUMENTO A SUPABASE STORAGE ---
+    if (attachedFile) {
+      const fileExt = attachedFile.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+      
+      const { error: uploadError } = await supabase.storage
+        .from('adjuntos')
+        .upload(fileName, attachedFile)
+
+      if (uploadError) {
+        console.error('Error al subir documento:', uploadError)
+        alert('Error al subir el documento: ' + uploadError.message)
+        setIsLoading(false)
+        return // Detenemos el guardado si falla el archivo
+      }
+
+      // Obtener el link público del archivo recién subido
+      const { data: urlData } = supabase.storage.from('adjuntos').getPublicUrl(fileName)
+      finalArchivoUrl = urlData.publicUrl
+    }
+
     const payload: any = {
       title,
       code: code || null,
@@ -132,7 +171,8 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       prioridad,
       origen,
       solucion_query: solucionQuery,
-      departamento: user?.department || 'CAE'
+      departamento: user?.department || 'CAE',
+      archivo_url: finalArchivoUrl // <-- Guardamos la URL en la tabla
     }
 
     if (isEditing) {
@@ -195,30 +235,10 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
       <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
       
-      {}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        
-        <Select 
-          label="Área Operativa" 
-          value={currentArea} 
-          onChange={setCurrentArea} 
-          groups={areaGroups} 
-        />
-
-        <Select 
-          label="Prioridad" 
-          value={prioridad} 
-          onChange={setPrioridad} 
-          options={priorityOptions} 
-        />
-
-        <Select 
-          label="Origen" 
-          value={origen} 
-          onChange={setOrigen} 
-          options={originOptions} 
-        />
-
+        <Select label="Área Operativa" value={currentArea} onChange={setCurrentArea} groups={areaGroups} />
+        <Select label="Prioridad" value={prioridad} onChange={setPrioridad} options={priorityOptions} />
+        <Select label="Origen" value={origen} onChange={setOrigen} options={originOptions} />
       </div>
 
       <Input label="Código de error" placeholder="Ej: ERR_500" value={code} onChange={(e: any) => setCode(e.target.value)} />
@@ -231,6 +251,42 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">Query de Solución (Opcional)</label>
         <textarea rows={3} placeholder="Pega aquí tu query .sql o pasos técnicos..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
+      </div>
+
+      {/* --- NUEVA ZONA PARA ADJUNTAR DOCUMENTOS --- */}
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1.5">Documentos Adjuntos (Excel, Word, PDF)</label>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            onClick={() => documentInputRef.current?.click()}
+            className="px-4 py-2 bg-slate-100 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2 border border-slate-200"
+          >
+            📎 Seleccionar archivo
+          </button>
+          
+          {attachedFileName && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-exodus-50 border border-exodus-100 rounded-lg max-w-xs">
+              <span className="text-xs text-exodus-700 font-medium truncate">{attachedFileName}</span>
+              <button 
+                type="button" 
+                onClick={() => { setAttachedFile(null); setAttachedFileName(null); }}
+                className="text-exodus-400 hover:text-red-500 transition-colors"
+                title="Eliminar adjunto"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-slate-500 mt-1.5">Adjunta manuales, reportes de log o archivos útiles para la solución.</p>
+        <input 
+          ref={documentInputRef} 
+          type="file" 
+          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" 
+          onChange={handleDocumentChange} 
+          className="hidden" 
+        />
       </div>
 
       <div>
@@ -249,7 +305,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       <div className="flex gap-3 pt-4">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" className="flex-1" isLoading={isLoading}>
-          {isEditing ? 'Guardar Cambios' : 'Guardar error'}
+          {isLoading ? 'Guardando y subiendo...' : (isEditing ? 'Guardar Cambios' : 'Guardar error')}
         </Button>
       </div>
     </form>

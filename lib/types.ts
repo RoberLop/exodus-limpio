@@ -57,6 +57,7 @@ export interface ErrorCard {
   updatedAt: Date
   createdBy: string
   tags: string[]
+  archivo_url?: string
 }
 
 export interface AuthState {
