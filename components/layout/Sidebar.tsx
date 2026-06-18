@@ -170,7 +170,7 @@ export function Sidebar() {
                   : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700'
               )}
             >
-              <span className="text-lg">📢</span>
+              <span className="text-lg"></span>
               <span>Centro de Información</span>
             </Link>
           </div>
@@ -235,7 +235,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {/* Firma */}
+        {}
         <div className="pb-3 pt-1 text-center opacity-60 hover:opacity-100 transition-opacity">
           <p className="text-[10px] font-medium text-slate-500 tracking-wide">
             &lt;/&gt; Desarrollado por Rober López
