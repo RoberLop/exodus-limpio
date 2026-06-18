@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
-import { areaLabels } from '@/lib/utils' // --- NUEVO: Para traer los nombres bonitos de las áreas ---
+import { areaLabels } from '@/lib/utils'
 
 export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
@@ -125,16 +125,14 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         {selectedError && !isConfirming && !isQueryExpanded && (
           <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-200">
             
+            {/* LADO IZQUIERDO (Imágenes y Querys) */}
             <div className="w-full md:w-1/2 space-y-4">
               <div className="flex flex-wrap gap-2">
-                {/* --- NUEVO: Etiqueta del Área Operativa --- */}
                 {selectedError.area && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-exodus-50 text-exodus-600 border border-exodus-100">
                     {areaLabels[selectedError.area] || selectedError.area}
                   </span>
                 )}
-                {/* ------------------------------------------ */}
-                
                 {selectedError.prioridad && (
                   <span className="px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100">
                     {selectedError.prioridad}
@@ -182,9 +180,26 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
               )}
             </div>
 
+            {/* LADO DERECHO (Descripción, Archivos, Pasos y Botones) */}
             <div className="w-full md:w-1/2 flex flex-col space-y-4">
               <p className="text-slate-600 text-sm">{selectedError.description}</p>
               
+              {/* --- NUEVO: BOTÓN PARA DESCARGAR ARCHIVO ADJUNTO --- */}
+              {selectedError.archivo_url && (
+                <a 
+                  href={selectedError.archivo_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm"
+                >
+                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Ver Documento Adjunto
+                </a>
+              )}
+              {/* -------------------------------------------------- */}
+
               <div className="bg-slate-900 p-4 rounded-xl text-white flex-1">
                 <h4 className="font-bold mb-3 text-sm text-blue-400">Pasos de Solución:</h4>
                 <div className="space-y-2">
@@ -236,6 +251,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
 
+        {/* VISTA DE QUERY EXPANDIDA */}
         {selectedError && !isConfirming && isQueryExpanded && (
           <div className="space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
@@ -266,6 +282,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
         
+        {/* VISTA DE ELIMINAR TICKET */}
         {isConfirming && (
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
