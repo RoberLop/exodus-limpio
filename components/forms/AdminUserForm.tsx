@@ -5,17 +5,18 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/SelectMenu'
 import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/context/AuthContext' // <-- Importamos tu contexto
+import { useAuth } from '@/context/AuthContext'
 
 interface AdminUserFormProps {
   initialData?: any
-  onSuccess: () => void
+  onSuccess: (message: string) => void
   onCancel: () => void
 }
 
 export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { user, isSuperAdmin } = useAuth() // <-- Obtenemos la validación de SuperAdmin
+  const [formError, setFormError] = useState('') // <-- Reemplazo del alert feo
+  const { user, isSuperAdmin } = useAuth()
   
   const [name, setName] = useState(initialData?.name || '')
   const [username, setUsername] = useState(initialData?.username || '')
@@ -33,7 +34,6 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
 
   const toggleDepartment = (dept: string) => {
     if (departments.includes(dept)) {
-      // Evitar que se quede sin ningún departamento
       if (departments.length > 1) {
         setDepartments(departments.filter(d => d !== dept))
       }
@@ -45,8 +45,8 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
+    setFormError('')
     
-    // Limpiamos el username para que siempre esté en minúsculas y sin espacios extra
     const cleanUsername = username.toLowerCase().trim()
 
     const payload = {
@@ -72,9 +72,9 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
 
       if (error) {
         console.error('Error al guardar usuario:', error)
-        alert(error.message?.includes('duplicate key') ? 'Ese nombre de usuario ya existe. Elige otro.' : 'Error al guardar el usuario.')
+        setFormError(error.message?.includes('duplicate key') ? 'Ese nombre de usuario ya existe. Elige otro.' : 'Error al guardar el usuario.')
       } else {
-        onSuccess()
+        onSuccess(isEditing ? 'Perfil de usuario actualizado correctamente.' : 'Usuario creado con éxito en el sistema.')
       }
     } else {
       // FLUJO 2: Es un Admin normal. Se envía a la Bandeja de Autorizaciones.
@@ -82,6 +82,7 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
       
       const { error } = await supabase.from('solicitudes_cambio').insert([{
         solicitante: user?.name || 'Administrador',
+        departamento: user?.department || 'TODOS',
         tipo_solicitud: tipoAccion,
         tabla_destino: 'usuarios',
         registro_id: isEditing ? initialData.id.toString() : 'NUEVO',
@@ -90,10 +91,9 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
       }])
 
       if (error) {
-        alert('Error al generar la solicitud de autorización: ' + error.message)
+        setFormError('Error al generar la solicitud de autorización: ' + error.message)
       } else {
-        alert('Tu solicitud ha sido enviada a la bandeja de autorizaciones para la aprobación de Gobernanza TI.')
-        onSuccess()
+        onSuccess('Solicitud enviada a la bandeja de Gobernanza TI.')
       }
     }
     
@@ -102,66 +102,32 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <Input 
-        label="Nombre Completo" 
-        placeholder="Ej: Juan Pérez" 
-        required 
-        value={name} 
-        onChange={(e: any) => setName(e.target.value)} 
-      />
+      {formError && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm font-medium text-red-600">
+          {formError}
+        </div>
+      )}
+
+      <Input label="Nombre Completo" placeholder="Ej: Juan Pérez" required value={name} onChange={(e: any) => setName(e.target.value)} />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Input 
-          label="Usuario (Login)" 
-          placeholder="Ej: juan cae" 
-          required 
-          value={username} 
-          onChange={(e: any) => setUsername(e.target.value)} 
-          disabled={isEditing} // No dejamos cambiar el username si está editando para evitar errores
-        />
-        <Input 
-          label="Contraseña" 
-          placeholder="••••••••" 
-          required 
-          value={password} 
-          onChange={(e: any) => setPassword(e.target.value)} 
-        />
+        <Input label="Usuario (Login)" placeholder="Ej: juan cae" required value={username} onChange={(e: any) => setUsername(e.target.value)} disabled={isEditing} />
+        <Input label="Contraseña" placeholder="••••••••" required value={password} onChange={(e: any) => setPassword(e.target.value)} />
       </div>
 
-      <Input 
-        label="Correo Electrónico" 
-        type="email"
-        placeholder="juan@exodus.com" 
-        value={email} 
-        onChange={(e: any) => setEmail(e.target.value)} 
-      />
+      <Input label="Correo Electrónico" type="email" placeholder="juan@exodus.com" value={email} onChange={(e: any) => setEmail(e.target.value)} />
 
-      <Select 
-        label="Rol del Sistema" 
-        value={role} 
-        onChange={setRole} 
-        options={roleOptions} 
-      />
+      <Select label="Rol del Sistema" value={role} onChange={setRole} options={roleOptions} />
 
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-2">Áreas Permitidas</label>
         <div className="flex gap-4">
           <label className="flex items-center gap-2 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full">
-            <input 
-              type="checkbox" 
-              checked={departments.includes('CAE')}
-              onChange={() => toggleDepartment('CAE')}
-              className="w-5 h-5 text-exodus-600 rounded border-slate-300 focus:ring-exodus-500"
-            />
+            <input type="checkbox" checked={departments.includes('CAE')} onChange={() => toggleDepartment('CAE')} className="w-5 h-5 text-exodus-600 rounded border-slate-300 focus:ring-exodus-500" />
             <span className="text-sm font-medium text-slate-700">Soporte CAE</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer p-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors w-full">
-            <input 
-              type="checkbox" 
-              checked={departments.includes('TI')}
-              onChange={() => toggleDepartment('TI')}
-              className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"
-            />
+            <input type="checkbox" checked={departments.includes('TI')} onChange={() => toggleDepartment('TI')} className="w-5 h-5 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500" />
             <span className="text-sm font-medium text-slate-700">Operaciones TI</span>
           </label>
         </div>
@@ -171,11 +137,8 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
       </div>
 
       <div className="flex gap-3 pt-4 border-t border-slate-100">
-        <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>
-          Cancelar
-        </Button>
+        <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" className="flex-1" isLoading={isLoading}>
-          {/* El botón cambia inteligentemente su texto según los permisos */}
           {!isSuperAdmin ? 'Enviar Solicitud' : (isEditing ? 'Guardar Cambios' : 'Crear Usuario')}
         </Button>
       </div>

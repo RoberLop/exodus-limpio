@@ -15,11 +15,12 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteObservation, setDeleteObservation] = useState('')
   const [actionError, setActionError] = useState('')
+  const [actionSuccess, setActionSuccess] = useState('') // <-- Para evitar el alert()
 
   const [isQueryExpanded, setIsQueryExpanded] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  const { user, isSuperAdmin } = useAuth() // <-- Extraemos isSuperAdmin
+  const { user, isSuperAdmin } = useAuth()
 
   const erroresFiltrados = (errors || []).filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -46,9 +47,9 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
   const handleConfirmDelete = async () => {
     setActionError('')
+    setActionSuccess('')
 
     if (isSuperAdmin) {
-      // FLUJO SUPER ADMIN: Elimina directo con contraseña
       if (deletePassword === 'isAdmin02') { 
         if (selectedError) {
           await supabase.from('audit_logs').insert([{
@@ -64,7 +65,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         setActionError('Contraseña incorrecta');
       }
     } else {
-      // FLUJO ADMIN NORMAL: Levanta solicitud de autorización
       if (!deleteObservation.trim()) {
         setActionError('La justificación es obligatoria.');
         return;
@@ -72,6 +72,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
       const { error } = await supabase.from('solicitudes_cambio').insert([{
         solicitante: user?.name || 'Administrador',
+        departamento: user?.department || 'TODOS',
         tipo_solicitud: 'ELIMINAR_TICKET',
         tabla_destino: 'errors',
         registro_id: selectedError.id.toString(),
@@ -80,10 +81,13 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
       }])
 
       if (error) {
-        alert('Error al enviar la solicitud: ' + error.message)
+        setActionError('Error al enviar la solicitud: ' + error.message)
       } else {
-        alert('Solicitud enviada a la Bandeja de Autorizaciones.')
-        handleCloseModal()
+        // En lugar del alert, le mostramos el mensaje directo y cerramos en 2s
+        setActionSuccess('Solicitud enviada a la Bandeja de Autorizaciones con éxito.')
+        setTimeout(() => {
+          handleCloseModal()
+        }, 2000)
       }
     }
   }
@@ -94,6 +98,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
     setDeletePassword('');
     setDeleteObservation('');
     setActionError('');
+    setActionSuccess('');
     setIsQueryExpanded(false);
     setIsCopied(false);
   }
@@ -107,13 +112,11 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   return (
     <>
       <div className="space-y-8">
-        
         {searchTerm && erroresFiltrados.length === 0 && (
           <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
             No se encontraron tickets que coincidan con "<strong>{searchTerm}</strong>".
           </div>
         )}
-
         {erroresComunes.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Comunes</h2>
@@ -124,7 +127,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             </div>
           </div>
         )}
-
         {erroresNormales.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Normales</h2>
@@ -135,7 +137,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             </div>
           </div>
         )}
-
         {erroresRaros.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Raros</h2>
@@ -146,15 +147,12 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             </div>
           </div>
         )}
-
       </div>
 
       <Modal isOpen={!!selectedError} onClose={handleCloseModal} title={selectedError?.title || ''}>
         
         {selectedError && !isConfirming && !isQueryExpanded && (
           <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-200">
-            
-            {/* LADO IZQUIERDO */}
             <div className="w-full md:w-1/2 space-y-4">
               <div className="flex flex-wrap gap-2">
                 {selectedError.area && (
@@ -173,194 +171,101 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                   </span>
                 )}
               </div>
-
               {selectedError.screenshotUrl && (
                 <img src={selectedError.screenshotUrl} className="w-full rounded-lg shadow-sm border border-slate-200" />
               )}
-
               {selectedError.solucion_query && (
                 <div className="bg-[#0f172a] p-4 rounded-xl border border-slate-700">
                   <div className="flex justify-between items-center mb-2">
-                    <h4 className="font-bold text-slate-300 text-sm flex items-center gap-2">
-                      Query / Técnico
-                    </h4>
-                    <button 
-                      onClick={() => setIsQueryExpanded(true)}
-                      className="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors px-2 py-1 rounded flex items-center gap-1 text-xs font-bold"
-                    >
-                      Ampliar
-                    </button>
+                    <h4 className="font-bold text-slate-300 text-sm flex items-center gap-2">Query / Técnico</h4>
+                    <button onClick={() => setIsQueryExpanded(true)} className="text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 transition-colors px-2 py-1 rounded flex items-center gap-1 text-xs font-bold">Ampliar</button>
                   </div>
-                  
-                  <div 
-                    className="relative max-h-24 overflow-hidden cursor-pointer group rounded"
-                    onClick={() => setIsQueryExpanded(true)}
-                  >
-                    <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all opacity-70 group-hover:opacity-100 transition-opacity">
-                      {selectedError.solucion_query}
-                    </pre>
+                  <div className="relative max-h-24 overflow-hidden cursor-pointer group rounded" onClick={() => setIsQueryExpanded(true)}>
+                    <pre className="text-emerald-400 font-mono text-xs whitespace-pre-wrap break-all opacity-70 group-hover:opacity-100 transition-opacity">{selectedError.solucion_query}</pre>
                     <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-[#0f172a] to-transparent flex items-end justify-center pb-1">
-                      <span className="text-xs text-blue-400 font-bold bg-[#0f172a] px-3 py-1 rounded-full border border-slate-700 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">
-                        Ver Query completa
-                      </span>
+                      <span className="text-xs text-blue-400 font-bold bg-[#0f172a] px-3 py-1 rounded-full border border-slate-700 shadow-lg transform translate-y-2 group-hover:translate-y-0 transition-all">Ver Query completa</span>
                     </div>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* LADO DERECHO */}
             <div className="w-full md:w-1/2 flex flex-col space-y-4">
               <p className="text-slate-600 text-sm">{selectedError.description}</p>
-              
               {selectedError.archivo_url && (
-                <a 
-                  href={selectedError.archivo_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm"
-                >
-                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                <a href={selectedError.archivo_url} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 font-bold text-sm rounded-xl border border-slate-200 hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                   Ver Documento Adjunto
                 </a>
               )}
-
               <div className="bg-slate-900 p-4 rounded-xl text-white flex-1">
                 <h4 className="font-bold mb-3 text-sm text-blue-400">Pasos de Solución:</h4>
                 <div className="space-y-2">
                   {(selectedError.steps || []).map((step: string, i: number) => (
-                    <p key={i} className="text-sm text-slate-200 leading-relaxed">
-                      <span className="font-bold text-slate-400 mr-1">{i + 1}.</span> {step}
-                    </p>
+                    <p key={i} className="text-sm text-slate-200 leading-relaxed"><span className="font-bold text-slate-400 mr-1">{i + 1}.</span> {step}</p>
                   ))}
                 </div>
               </div>
-
               <div className="flex flex-col gap-3 pt-3 mt-auto border-t border-slate-100">
                 <div className="flex flex-col gap-1 text-xs text-slate-400">
-                  {selectedError.creado_por && (
-                    <span>
-                      Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong> 
-                      {selectedError.created_at && ` el ${formatFecha(selectedError.created_at)}`}
-                    </span>
-                  )}
-                  {selectedError.modificado_por && (
-                    <span>
-                      Editado por: <strong className="text-slate-500">{selectedError.modificado_por}</strong>
-                      {selectedError.updated_at && ` el ${formatFecha(selectedError.updated_at)}`}
-                    </span>
-                  )}
+                  {selectedError.creado_por && <span>Creado por: <strong className="text-slate-500">{selectedError.creado_por}</strong> {selectedError.created_at && ` el ${formatFecha(selectedError.created_at)}`}</span>}
+                  {selectedError.modificado_por && <span>Editado por: <strong className="text-slate-500">{selectedError.modificado_por}</strong>{selectedError.updated_at && ` el ${formatFecha(selectedError.updated_at)}`}</span>}
                 </div>
-
                 <div className="flex justify-between items-center">
-                  <button 
-                    onClick={() => {
-                      if (onEdit) onEdit(selectedError);
-                      handleCloseModal();
-                    }} 
-                    className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors"
-                  >
-                    Editar Ticket
-                  </button>
-
-                  <button 
-                    onClick={() => setIsConfirming(true)} 
-                    className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors"
-                  >
-                    Eliminar Ticket
-                  </button>
+                  <button onClick={() => { if (onEdit) onEdit(selectedError); handleCloseModal(); }} className="text-blue-600 hover:text-blue-800 text-sm font-bold flex items-center gap-1 transition-colors">Editar Ticket</button>
+                  <button onClick={() => setIsConfirming(true)} className="text-red-500 hover:text-red-700 text-sm font-bold transition-colors">Eliminar Ticket</button>
                 </div>
               </div>
             </div>
-
           </div>
         )}
 
-        {/* VISTA DE QUERY EXPANDIDA */}
         {selectedError && !isConfirming && isQueryExpanded && (
           <div className="space-y-4 animate-in zoom-in-95 duration-200">
             <div className="flex justify-between items-center bg-slate-100 p-4 rounded-xl border border-slate-200">
-              <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                Vista Completa de Query
-              </h3>
+              <h3 className="font-bold text-slate-800 flex items-center gap-2">Vista Completa de Query</h3>
               <div className="flex gap-2">
-                <button 
-                  onClick={() => handleCopyQuery(selectedError.solucion_query)}
-                  className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${isCopied ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}
-                >
+                <button onClick={() => handleCopyQuery(selectedError.solucion_query)} className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-2 shadow-sm ${isCopied ? 'bg-emerald-100 text-emerald-700 border-emerald-200' : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'}`}>
                   {isCopied ? 'Copiado' : 'Copiar Query'}
                 </button>
-                <button 
-                  onClick={() => setIsQueryExpanded(false)}
-                  className="px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-lg text-sm font-bold transition-colors shadow-sm"
-                >
-                  Volver atrás
-                </button>
+                <button onClick={() => setIsQueryExpanded(false)} className="px-4 py-2 bg-slate-800 text-white hover:bg-slate-900 rounded-lg text-sm font-bold transition-colors shadow-sm">Volver atrás</button>
               </div>
             </div>
-
             <div className="bg-[#0f172a] p-6 rounded-xl border border-slate-700 max-h-[60vh] overflow-y-auto custom-scrollbar shadow-inner">
-              <pre className="text-emerald-400 font-mono text-sm whitespace-pre-wrap break-all leading-relaxed">
-                {selectedError.solucion_query}
-              </pre>
+              <pre className="text-emerald-400 font-mono text-sm whitespace-pre-wrap break-all leading-relaxed">{selectedError.solucion_query}</pre>
             </div>
           </div>
         )}
         
-        {/* VISTA DE ELIMINAR TICKET (GOBERNANZA) */}
         {isConfirming && (
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
-            
             {isSuperAdmin ? (
               <>
                 <p className="text-sm text-slate-500">Ingresa la contraseña maestra para eliminar este ticket permanentemente.</p>
                 <div className="max-w-xs mx-auto mt-4">
-                  <input
-                    type="password"
-                    placeholder="Contraseña..."
-                    value={deletePassword}
-                    onChange={(e) => {
-                      setDeletePassword(e.target.value)
-                      setActionError('')
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${actionError ? 'border-red-500' : 'border-slate-200'}`}
-                  />
+                  <input type="password" placeholder="Contraseña..." value={deletePassword} onChange={(e) => { setDeletePassword(e.target.value); setActionError(''); setActionSuccess(''); }} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${actionError ? 'border-red-500' : 'border-slate-200'}`} />
                 </div>
               </>
             ) : (
               <>
                 <p className="text-sm text-slate-500">Por seguridad, la eliminación requiere autorización de Gobernanza de TI.</p>
                 <div className="max-w-md mx-auto mt-4">
-                  <textarea
-                    placeholder="Justifica por qué necesitas eliminar este ticket..."
-                    value={deleteObservation}
-                    onChange={(e) => {
-                      setDeleteObservation(e.target.value)
-                      setActionError('')
-                    }}
-                    className={`w-full px-4 py-3 rounded-xl border bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/20 transition-all text-sm ${actionError ? 'border-red-500' : 'border-slate-200'}`}
-                    rows={3}
-                  />
+                  <textarea placeholder="Justifica por qué necesitas eliminar este ticket..." value={deleteObservation} onChange={(e) => { setDeleteObservation(e.target.value); setActionError(''); setActionSuccess(''); }} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/20 transition-all text-sm ${actionError ? 'border-red-500' : 'border-slate-200'}`} rows={3} />
                 </div>
               </>
             )}
 
-            {actionError && (
-              <p className="text-red-500 text-xs mt-2 font-bold animate-pulse">
-                {actionError}
-              </p>
-            )}
+            {actionError && <p className="text-red-500 text-xs mt-2 font-bold animate-pulse">{actionError}</p>}
+            {actionSuccess && <p className="text-emerald-600 text-xs mt-2 font-bold animate-pulse">{actionSuccess}</p>}
 
             <div className="flex gap-3 justify-center mt-6">
-              <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setActionError(''); setDeleteObservation(''); }}>
-                Cancelar
-              </Button>
-              <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete}>
-                {isSuperAdmin ? 'Sí, borrar' : 'Enviar Solicitud'}
-              </Button>
+              {actionSuccess ? null : (
+                <>
+                  <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setActionError(''); setDeleteObservation(''); }}>Cancelar</Button>
+                  <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete}>{isSuperAdmin ? 'Sí, borrar' : 'Enviar Solicitud'}</Button>
+                </>
+              )}
             </div>
           </div>
         )}
