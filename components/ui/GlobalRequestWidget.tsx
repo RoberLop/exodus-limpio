@@ -274,7 +274,7 @@ export function GlobalRequestWidget() {
                             onClick={() => handleDismiss(s.id)}
                             className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors border border-slate-200"
                           >
-                            Acusar de Recibo
+                            Entendido
                           </button>
                         )}
                       </div>
