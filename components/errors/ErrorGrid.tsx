@@ -13,12 +13,13 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [isConfirming, setIsConfirming] = useState(false)
   
   const [deletePassword, setDeletePassword] = useState('')
-  const [passwordError, setPasswordError] = useState(false)
+  const [deleteObservation, setDeleteObservation] = useState('')
+  const [actionError, setActionError] = useState('')
 
   const [isQueryExpanded, setIsQueryExpanded] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
 
-  const { user } = useAuth()
+  const { user, isSuperAdmin } = useAuth() // <-- Extraemos isSuperAdmin
 
   const erroresFiltrados = (errors || []).filter((e: any) => 
     e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -44,19 +45,46 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   }
 
   const handleConfirmDelete = async () => {
-    if (deletePassword === 'isAdmin02') { 
-      if (selectedError) {
-        await supabase.from('audit_logs').insert([{
-          accion: 'ELIMINADO',
-          ticket_titulo: selectedError.title,
-          usuario: user?.name || 'Desconocido'
-        }]);
+    setActionError('')
+
+    if (isSuperAdmin) {
+      // FLUJO SUPER ADMIN: Elimina directo con contraseña
+      if (deletePassword === 'isAdmin02') { 
+        if (selectedError) {
+          await supabase.from('audit_logs').insert([{
+            accion: 'ELIMINADO',
+            ticket_titulo: selectedError.title,
+            usuario: user?.name || 'Desconocido',
+            departamento: user?.department || 'CAE'
+          }]);
+        }
+        onDelete(selectedError.id);
+        handleCloseModal();
+      } else {
+        setActionError('Contraseña incorrecta');
+      }
+    } else {
+      // FLUJO ADMIN NORMAL: Levanta solicitud de autorización
+      if (!deleteObservation.trim()) {
+        setActionError('La justificación es obligatoria.');
+        return;
       }
 
-      onDelete(selectedError.id);
-      handleCloseModal();
-    } else {
-      setPasswordError(true);
+      const { error } = await supabase.from('solicitudes_cambio').insert([{
+        solicitante: user?.name || 'Administrador',
+        tipo_solicitud: 'ELIMINAR_TICKET',
+        tabla_destino: 'errors',
+        registro_id: selectedError.id.toString(),
+        observacion: deleteObservation,
+        informacion_cambio: selectedError
+      }])
+
+      if (error) {
+        alert('Error al enviar la solicitud: ' + error.message)
+      } else {
+        alert('Solicitud enviada a la Bandeja de Autorizaciones.')
+        handleCloseModal()
+      }
     }
   }
 
@@ -64,7 +92,8 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
     setSelectedError(null);
     setIsConfirming(false);
     setDeletePassword('');
-    setPasswordError(false);
+    setDeleteObservation('');
+    setActionError('');
     setIsQueryExpanded(false);
     setIsCopied(false);
   }
@@ -125,7 +154,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         {selectedError && !isConfirming && !isQueryExpanded && (
           <div className="flex flex-col md:flex-row gap-6 animate-in fade-in duration-200">
             
-            {/* LADO IZQUIERDO (Imágenes y Querys) */}
+            {/* LADO IZQUIERDO */}
             <div className="w-full md:w-1/2 space-y-4">
               <div className="flex flex-wrap gap-2">
                 {selectedError.area && (
@@ -180,11 +209,10 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
               )}
             </div>
 
-            {/* LADO DERECHO (Descripción, Archivos, Pasos y Botones) */}
+            {/* LADO DERECHO */}
             <div className="w-full md:w-1/2 flex flex-col space-y-4">
               <p className="text-slate-600 text-sm">{selectedError.description}</p>
               
-              {/* --- NUEVO: BOTÓN PARA DESCARGAR ARCHIVO ADJUNTO --- */}
               {selectedError.archivo_url && (
                 <a 
                   href={selectedError.archivo_url}
@@ -198,7 +226,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
                   Ver Documento Adjunto
                 </a>
               )}
-              {/* -------------------------------------------------- */}
 
               <div className="bg-slate-900 p-4 rounded-xl text-white flex-1">
                 <h4 className="font-bold mb-3 text-sm text-blue-400">Pasos de Solución:</h4>
@@ -282,36 +309,57 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           </div>
         )}
         
-        {/* VISTA DE ELIMINAR TICKET */}
+        {/* VISTA DE ELIMINAR TICKET (GOBERNANZA) */}
         {isConfirming && (
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
-            <p className="text-sm text-slate-500">Ingresa la contraseña maestra para eliminar este ticket.</p>
             
-            <div className="max-w-xs mx-auto mt-4">
-              <input
-                type="password"
-                placeholder="Contraseña..."
-                value={deletePassword}
-                onChange={(e) => {
-                  setDeletePassword(e.target.value)
-                  setPasswordError(false)
-                }}
-                className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${passwordError ? 'border-red-500' : 'border-slate-200'}`}
-              />
-              {passwordError && (
-                <p className="text-red-500 text-xs mt-2 font-bold animate-pulse">
-                  Contraseña incorrecta
-                </p>
-              )}
-            </div>
+            {isSuperAdmin ? (
+              <>
+                <p className="text-sm text-slate-500">Ingresa la contraseña maestra para eliminar este ticket permanentemente.</p>
+                <div className="max-w-xs mx-auto mt-4">
+                  <input
+                    type="password"
+                    placeholder="Contraseña..."
+                    value={deletePassword}
+                    onChange={(e) => {
+                      setDeletePassword(e.target.value)
+                      setActionError('')
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${actionError ? 'border-red-500' : 'border-slate-200'}`}
+                  />
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-slate-500">Por seguridad, la eliminación requiere autorización de Gobernanza de TI.</p>
+                <div className="max-w-md mx-auto mt-4">
+                  <textarea
+                    placeholder="Justifica por qué necesitas eliminar este ticket..."
+                    value={deleteObservation}
+                    onChange={(e) => {
+                      setDeleteObservation(e.target.value)
+                      setActionError('')
+                    }}
+                    className={`w-full px-4 py-3 rounded-xl border bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/20 transition-all text-sm ${actionError ? 'border-red-500' : 'border-slate-200'}`}
+                    rows={3}
+                  />
+                </div>
+              </>
+            )}
+
+            {actionError && (
+              <p className="text-red-500 text-xs mt-2 font-bold animate-pulse">
+                {actionError}
+              </p>
+            )}
 
             <div className="flex gap-3 justify-center mt-6">
-              <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setPasswordError(false); }}>
+              <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setActionError(''); setDeleteObservation(''); }}>
                 Cancelar
               </Button>
               <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete}>
-                Sí, borrar
+                {isSuperAdmin ? 'Sí, borrar' : 'Enviar Solicitud'}
               </Button>
             </div>
           </div>

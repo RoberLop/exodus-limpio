@@ -17,7 +17,7 @@ interface NewErrorFormProps {
 
 export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErrorFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { user } = useAuth()
+  const { user, isSuperAdmin } = useAuth() // <-- Extraemos isSuperAdmin
   
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
   const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
@@ -26,6 +26,9 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   
+  // NUEVO: Estado para justificar la edición
+  const [editObservation, setEditObservation] = useState('')
+
   const defaultArea = user?.department === 'TI' ? 'categoria_1' : 'exodus_mostradores'
   const [currentArea, setCurrentArea] = useState<string>(
     initialData?.area || (area === 'global' ? defaultArea : area)
@@ -38,7 +41,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const isEditing = !!initialData?.id
   const fileInputRef = useRef<HTMLInputElement>(null)
   
-  // --- NUEVOS ESTADOS PARA SUBIR ARCHIVOS (Word, Excel, PDF) ---
   const documentInputRef = useRef<HTMLInputElement>(null)
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const [attachedFileName, setAttachedFileName] = useState<string | null>(
@@ -101,7 +103,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     { value: 'Sistemas', label: 'Sistemas' }
   ]
 
-  // Handler para la imagen de captura de pantalla
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -113,7 +114,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     }
   }
 
-  // NUEVO: Handler para el documento (PDF, Excel, Word)
   const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -136,11 +136,17 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Validar justificación antes de procesar archivos si es una edición por Admin normal
+    if (isEditing && !isSuperAdmin && !editObservation.trim()) {
+      alert('Debes ingresar una justificación para solicitar la edición de este ticket.')
+      return
+    }
+
     setIsLoading(true)
     
     let finalArchivoUrl = initialData?.archivo_url || null
 
-    // --- MAGIA: SUBIR EL DOCUMENTO A SUPABASE STORAGE ---
     if (attachedFile) {
       const fileExt = attachedFile.name.split('.').pop()
       const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
@@ -153,10 +159,9 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         console.error('Error al subir documento:', uploadError)
         alert('Error al subir el documento: ' + uploadError.message)
         setIsLoading(false)
-        return // Detenemos el guardado si falla el archivo
+        return
       }
 
-      // Obtener el link público del archivo recién subido
       const { data: urlData } = supabase.storage.from('adjuntos').getPublicUrl(fileName)
       finalArchivoUrl = urlData.publicUrl
     }
@@ -172,7 +177,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       origen,
       solucion_query: solucionQuery,
       departamento: user?.department || 'CAE',
-      archivo_url: finalArchivoUrl // <-- Guardamos la URL en la tabla
+      archivo_url: finalArchivoUrl
     }
 
     if (isEditing) {
@@ -182,28 +187,48 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
       payload.modificado_por = null
     }
 
-    let result;
-    if (isEditing) {
-      result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
+    // --- FLUJO DE GOBERNANZA PARA EDICIÓN DE TICKETS ---
+    if (isEditing && !isSuperAdmin) {
+      const { error } = await supabase.from('solicitudes_cambio').insert([{
+        solicitante: user?.name || 'Administrador',
+        tipo_solicitud: 'EDITAR_TICKET',
+        tabla_destino: 'errors',
+        registro_id: initialData.id.toString(),
+        observacion: editObservation,
+        informacion_cambio: payload
+      }])
+
+      if (error) {
+        alert('Error al enviar la solicitud: ' + error.message)
+      } else {
+        alert('Tu solicitud de edición ha sido enviada a la Bandeja de Autorizaciones.')
+        onSuccess(null)
+      }
     } else {
-      result = await supabase.from('errors').insert([payload]).select()
-    }
+      // FLUJO DIRECTO: Creación (cualquiera) o Edición (solo Super Admin)
+      let result;
+      if (isEditing) {
+        result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
+      } else {
+        result = await supabase.from('errors').insert([payload]).select()
+      }
 
-    const { data, error } = result;
+      const { data, error } = result;
 
-    if (error) {
-      console.error('Error al guardar en Supabase:', error)
-      alert('Error al guardar: ' + error.message)
-    } else {
-      const accionLog = isEditing ? 'EDITADO' : 'CREADO';
-      await supabase.from('audit_logs').insert([{
-        accion: accionLog,
-        ticket_titulo: title,
-        usuario: user?.name || 'Desconocido',
-        departamento: user?.department || 'CAE'
-      }]);
+      if (error) {
+        console.error('Error al guardar en Supabase:', error)
+        alert('Error al guardar: ' + error.message)
+      } else {
+        const accionLog = isEditing ? 'EDITADO' : 'CREADO';
+        await supabase.from('audit_logs').insert([{
+          accion: accionLog,
+          ticket_titulo: title,
+          usuario: user?.name || 'Desconocido',
+          departamento: user?.department || 'CAE'
+        }]);
 
-      onSuccess(data)
+        onSuccess(data)
+      }
     }
     
     setIsLoading(false)
@@ -253,7 +278,6 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         <textarea rows={3} placeholder="Pega aquí tu query .sql o pasos técnicos..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
       </div>
 
-      {/* --- NUEVA ZONA PARA ADJUNTAR DOCUMENTOS --- */}
       <div>
         <label className="block text-sm font-medium text-slate-700 mb-1.5">Documentos Adjuntos (Excel, Word, PDF)</label>
         <div className="flex items-center gap-4">
@@ -279,14 +303,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
             </div>
           )}
         </div>
-        <p className="text-xs text-slate-500 mt-1.5">Adjunta manuales, reportes de log o archivos útiles para la solución.</p>
-        <input 
-          ref={documentInputRef} 
-          type="file" 
-          accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" 
-          onChange={handleDocumentChange} 
-          className="hidden" 
-        />
+        <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" onChange={handleDocumentChange} className="hidden" />
       </div>
 
       <div>
@@ -302,10 +319,24 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         <button type="button" onClick={addStep} className="mt-2 text-sm text-exodus-600 font-medium">+ Agregar paso</button>
       </div>
 
-      <div className="flex gap-3 pt-4">
+      {/* NUEVO: Campo de justificación visible solo al editar si no se es SuperAdmin */}
+      {isEditing && !isSuperAdmin && (
+        <div className="pt-2">
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Justificación de la edición</label>
+          <textarea 
+            rows={2} 
+            placeholder="Describe brevemente por qué necesitas modificar este ticket..." 
+            className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 transition-all text-sm" 
+            value={editObservation} 
+            onChange={(e) => setEditObservation(e.target.value)} 
+          />
+        </div>
+      )}
+
+      <div className="flex gap-3 pt-4 border-t border-slate-100">
         <Button type="button" variant="secondary" className="flex-1" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" className="flex-1" isLoading={isLoading}>
-          {isLoading ? 'Guardando y subiendo...' : (isEditing ? 'Guardar Cambios' : 'Guardar error')}
+          {isLoading ? 'Procesando...' : (isEditing ? (!isSuperAdmin ? 'Enviar Solicitud' : 'Guardar Cambios') : 'Guardar error')}
         </Button>
       </div>
     </form>
