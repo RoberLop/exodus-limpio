@@ -246,7 +246,7 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* --- EL COMPONENTE SE RENDERIZA AQUÍ FUERA DEL MENÚ PARA FLOTAR EN LA PANTALLA --- */}
+      {}
       <GlobalRequestWidget />
     </>
   )
