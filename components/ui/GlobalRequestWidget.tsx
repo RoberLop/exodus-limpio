@@ -7,23 +7,21 @@ import { cn } from '@/lib/utils'
 
 export function GlobalRequestWidget() {
   const { user, isSuperAdmin, isAuthenticated } = useAuth()
-  
-  // Gestión de estado local
   const [solicitudes, setSolicitudes] = useState<any[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedIds, setDismissedIds] = useState<number[]>([])
 
-  // Variables de procesamiento
+  // Gestión de estado para procesamiento inline
   const [processingId, setProcessingId] = useState<number | null>(null)
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  // Control de coordenadas espaciales
+  // Gestión de coordenadas para Drag & Drop
   const [position, setPosition] = useState({ x: 0, y: 0 })
   const [isDragging, setIsDragging] = useState(false)
   const dragRef = useRef({ startX: 0, startY: 0, lastX: 0, lastY: 0 })
 
-  // Persistencia de notificaciones descartadas
+  // Inicialización de persistencia local
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('exodus_dismissed_requests')
@@ -31,7 +29,7 @@ export function GlobalRequestWidget() {
     }
   }, [])
 
-  // Suscripción de eventos Supabase Realtime
+  // Suscripción a Supabase Realtime
   useEffect(() => {
     if (!isAuthenticated || !user) return
 
@@ -60,7 +58,7 @@ export function GlobalRequestWidget() {
     return () => { supabase.removeChannel(canal) }
   }, [user, isSuperAdmin, isAuthenticated])
 
-  // Controladores de eventos de arrastre
+  // Lógica de Drag & Drop
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true)
     dragRef.current.startX = e.clientX
@@ -91,7 +89,7 @@ export function GlobalRequestWidget() {
     }
   }, [isDragging])
 
-  // Procesamiento de transacciones de base de datos
+  // Procesamiento de Autorizaciones
   const handleAprobar = async (solicitud: any) => {
     setProcessingId(solicitud.id)
     try {
@@ -115,19 +113,19 @@ export function GlobalRequestWidget() {
       }
 
       if (queryError) {
-        alert('Error de transacción: ' + queryError.message)
+        alert('Error operativo en base de datos: ' + queryError.message)
         setProcessingId(null)
         return
       }
 
       await supabase.from('solicitudes_cambio').update({
         estado: 'APROBADO',
-        procesado_por: user?.name || 'Sistema',
+        procesado_por: user?.name || 'Administrador',
         procesado_at: new Date().toISOString()
       }).eq('id', solicitud.id)
 
     } catch (err) {
-      console.error('Error de ejecución:', err)
+      console.error('Error de procesamiento:', err)
     }
     setProcessingId(null)
   }
@@ -136,7 +134,7 @@ export function GlobalRequestWidget() {
     if (!rejectReason.trim()) return
     setProcessingId(solicitud.id)
 
-    const firmaRechazo = `${user?.name || 'Sistema'} - Motivo: ${rejectReason}`
+    const firmaRechazo = `${user?.name || 'Administrador'} - Motivo: ${rejectReason}`
 
     await supabase.from('solicitudes_cambio').update({
       estado: 'RECHAZADO',
@@ -157,7 +155,6 @@ export function GlobalRequestWidget() {
 
   if (!isAuthenticated || !user) return null
 
-  // Filtro de colección de notificaciones activas
   const displayRequests = solicitudes.filter(s => !dismissedIds.includes(s.id))
   const totalRelevant = displayRequests.length
 
@@ -168,8 +165,12 @@ export function GlobalRequestWidget() {
       className="fixed bottom-6 right-6 z-[999] flex flex-col items-end animate-in fade-in duration-500"
       style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
     >
+      
+      {/* Contenedor principal expandido */}
       {isOpen && (
         <div className="mb-4 w-80 sm:w-96 glass rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden flex flex-col">
+          
+          {/* Cabecera con Drag & Drop */}
           <div 
             className="bg-slate-800 p-4 flex justify-between items-center shadow-md cursor-move select-none"
             onMouseDown={handleMouseDown}
@@ -190,103 +191,98 @@ export function GlobalRequestWidget() {
             </button>
           </div>
 
-          <div className="max-h-[26rem] overflow-y-auto custom-scrollbar p-3 bg-slate-50/50">
+          {/* Listado de Solicitudes */}
+          <div className="max-h-80 overflow-y-auto custom-scrollbar p-3 bg-slate-50/50">
             {displayRequests.length === 0 ? (
-              <p className="text-center text-slate-400 text-xs py-6 font-medium">No existen registros en cola.</p>
+              <p className="text-center text-slate-400 text-xs py-6 font-medium">Bandeja limpia. No hay registros pendientes.</p>
             ) : (
-              displayRequests.map(s => {
-                // Parseo dinámico de entidad objetivo
-                const targetName = s.informacion_cambio?.name || s.informacion_cambio?.title || `ID: ${s.registro_id}`
-
-                return (
-                  <div key={s.id} className="mb-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm relative group">
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-xs font-bold text-slate-800">
-                        {s.tipo_solicitud.replace('_', ' ')}
-                      </span>
-                      <span className={cn(
-                        "text-[10px] px-2 py-0.5 rounded font-bold border",
-                        s.estado === 'PENDIENTE' ? "bg-amber-50 text-amber-600 border-amber-200" :
-                        s.estado === 'APROBADO' ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
-                        "bg-red-50 text-red-600 border-red-200"
-                      )}>
-                        {s.estado}
-                      </span>
-                    </div>
-                    
-                    {isSuperAdmin ? (
-                      <div className="space-y-1.5 mt-2">
-                        <p className="text-[11px] text-slate-500">
-                          Operador: <strong className="text-slate-700">{s.solicitante}</strong>
-                          {s.departamento !== 'TODOS' && ` (${s.departamento})`}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          Objetivo: <strong className="text-slate-800">{targetName}</strong>
-                        </p>
-                        <p className="text-[11px] text-slate-600 bg-slate-50 p-1.5 rounded border border-slate-100">
-                          {s.observacion}
-                        </p>
-                        
-                        {rejectingId === s.id ? (
-                          <div className="mt-2 space-y-2 animate-in fade-in zoom-in-95 duration-200">
-                            <textarea 
-                              className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400"
-                              placeholder="Justificación de denegación..."
-                              rows={2}
-                              value={rejectReason}
-                              onChange={(e) => setRejectReason(e.target.value)}
-                              autoFocus
-                            />
-                            <div className="flex gap-2">
-                              <button onClick={() => setRejectingId(null)} className="flex-1 py-1 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
-                              <button onClick={() => handleConfirmRechazo(s)} disabled={processingId === s.id} className="flex-1 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50">Confirmar</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
-                            <button onClick={() => setRejectingId(s.id)} disabled={processingId === s.id} className="px-3 py-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-lg transition-colors disabled:opacity-50">Denegar</button>
-                            <button onClick={() => handleAprobar(s)} disabled={processingId === s.id} className="px-3 py-1 bg-slate-800 text-white hover:bg-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50">{processingId === s.id ? 'Ejecutando...' : 'Autorizar'}</button>
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2 mt-2">
-                        <p className="text-[11px] text-slate-500">
-                          Objetivo: <strong className="text-slate-800">{targetName}</strong>
-                        </p>
-                        <p className="text-[11px] text-slate-500 line-clamp-2">{s.observacion}</p>
-                        
-                        {s.estado === 'RECHAZADO' && (
-                          <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
-                            <span className="font-bold">Gobernanza TI:</span> {s.procesado_por?.split('- Motivo: ')[1] || 'Acción denegada por directiva.'}
-                          </div>
-                        )}
-
-                        {s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
-                          <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
-                            <span className="font-bold text-emerald-800">Credencial extraída: </span>
-                            <code className="bg-white px-2 py-1 rounded border text-emerald-700 font-mono font-bold tracking-widest">{s.informacion_cambio?.password}</code>
-                          </div>
-                        )}
-
-                        {s.estado !== 'PENDIENTE' && (
-                          <button 
-                            onClick={() => handleDismiss(s.id)}
-                            className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors border border-slate-200"
-                          >
-                            Entendido
-                          </button>
-                        )}
-                      </div>
-                    )}
+              displayRequests.map(s => (
+                <div key={s.id} className="mb-3 p-3 bg-white rounded-xl border border-slate-100 shadow-sm relative group">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs font-bold text-slate-800">
+                      {s.tipo_solicitud.replace('_', ' ')}
+                    </span>
+                    <span className={cn(
+                      "text-[10px] px-2 py-0.5 rounded font-bold border",
+                      s.estado === 'PENDIENTE' ? "bg-amber-50 text-amber-600 border-amber-200" :
+                      s.estado === 'APROBADO' ? "bg-emerald-50 text-emerald-600 border-emerald-200" :
+                      "bg-red-50 text-red-600 border-red-200"
+                    )}>
+                      {s.estado}
+                    </span>
                   </div>
-                )
-              })
+                  
+                  {isSuperAdmin ? (
+                    <div className="space-y-1">
+                      <p className="text-[11px] text-slate-500">
+                        Solicitante: <strong className="text-slate-700">{s.solicitante}</strong>
+                        {s.departamento !== 'TODOS' && ` (${s.departamento})`}
+                      </p>
+                      <p className="text-[11px] text-slate-600 bg-slate-50 p-1.5 rounded border border-slate-100">
+                        {s.observacion}
+                      </p>
+                      
+                      {/* Controles de Gobernanza Super Admin */}
+                      {rejectingId === s.id ? (
+                        <div className="mt-2 space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                          <textarea 
+                            className="w-full text-xs p-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-slate-400"
+                            placeholder="Justificación del rechazo..."
+                            rows={2}
+                            value={rejectReason}
+                            onChange={(e) => setRejectReason(e.target.value)}
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <button onClick={() => setRejectingId(null)} className="flex-1 py-1 text-xs font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors">Cancelar</button>
+                            <button onClick={() => handleConfirmRechazo(s)} disabled={processingId === s.id} className="flex-1 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors disabled:opacity-50">Confirmar</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-2 mt-3 pt-2 border-t border-slate-100">
+                          <button onClick={() => setRejectingId(s.id)} disabled={processingId === s.id} className="px-3 py-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold rounded-lg transition-colors disabled:opacity-50">Rechazar</button>
+                          <button onClick={() => handleAprobar(s)} disabled={processingId === s.id} className="px-3 py-1 bg-slate-800 text-white hover:bg-slate-900 text-xs font-bold rounded-lg transition-colors shadow-sm disabled:opacity-50">{processingId === s.id ? 'Procesando...' : 'Aprobar'}</button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-2 mt-2">
+                      <p className="text-[11px] text-slate-500 line-clamp-2">{s.observacion}</p>
+                      
+                      {/* Visualización de justificación de rechazo para el usuario */}
+                      {s.estado === 'RECHAZADO' && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
+                          <span className="font-bold">Gobernanza TI:</span> {s.procesado_por?.split('- Motivo: ')[1] || 'Solicitud denegada.'}
+                        </div>
+                      )}
+
+                      {/* Visualización de contraseña aprobada */}
+                      {s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
+                        <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
+                          <span className="font-bold text-emerald-800">Credencial de {s.informacion_cambio?.name}: </span>
+                          <code className="bg-white px-2 py-1 rounded border text-emerald-700 font-mono font-bold tracking-widest">{s.informacion_cambio?.password}</code>
+                        </div>
+                      )}
+
+                      {/* Control de descarte de notificación */}
+                      {s.estado !== 'PENDIENTE' && (
+                        <button 
+                          onClick={() => handleDismiss(s.id)}
+                          className="mt-3 w-full py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-lg transition-colors border border-slate-200"
+                        >
+                          Entendido
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))
             )}
           </div>
         </div>
       )}
 
+      {/* Burbuja principal de control (Arrastrable) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         onMouseDown={handleMouseDown}
@@ -306,6 +302,7 @@ export function GlobalRequestWidget() {
             </svg>
           )}
           
+          {/* Indicador de elementos procesables */}
           {!isOpen && totalRelevant > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -316,6 +313,7 @@ export function GlobalRequestWidget() {
           )}
         </div>
       </button>
+
     </div>
   )
 }
