@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
@@ -29,10 +29,18 @@ const areasTI: OperationalArea[] = [
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { user, logout, isAdmin } = useAuth()
+  const router = useRouter()
+  const { user, logout, isAdmin, isLoading } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
   const isTI = user?.department === 'TI'
+
+  // GUARDIA DE RUTA CLIENT-SIDE: Evita accesos por links directos sin sesión activa
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/login')
+    }
+  }, [user, isLoading, router])
 
   return (
     <aside className="fixed left-0 top-0 bottom-0 w-72 p-4">
@@ -159,7 +167,7 @@ export function Sidebar() {
             </>
           )}
 
-          {/* --- INFORMACIÓN (NUEVA RUTA) --- */}
+          {/* --- INFORMACIÓN --- */}
           <div className="pt-4 mt-4 border-t border-slate-200/50">
             <Link
               href="/dashboard/informacion"
@@ -170,7 +178,7 @@ export function Sidebar() {
                   : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700'
               )}
             >
-              <span className="text-lg"></span>
+              <span className="text-lg">📢</span>
               <span>Centro de Información</span>
             </Link>
           </div>
@@ -212,7 +220,7 @@ export function Sidebar() {
           <div className="flex items-center gap-3 p-3 rounded-xl bg-white/50">
             <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center">
               <span className="text-sm font-semibold text-slate-600">
-                {user?.name.charAt(0)}
+                {user?.name ? user.name.charAt(0).toUpperCase() : ''}
               </span>
             </div>
             <div className="flex-1 min-w-0">
@@ -235,7 +243,7 @@ export function Sidebar() {
           </div>
         </div>
 
-        {}
+        {/* Firma de creador */}
         <div className="pb-3 pt-1 text-center opacity-60 hover:opacity-100 transition-opacity">
           <p className="text-[10px] font-medium text-slate-500 tracking-wide">
             &lt;/&gt; Desarrollado por Rober López

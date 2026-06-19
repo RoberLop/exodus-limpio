@@ -9,24 +9,23 @@ import { AdminUserForm } from '@/components/forms/AdminUserForm'
 import { AdminAnnounceForm } from '@/components/forms/AdminAnnounceForm'
 
 export default function AdminPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, isSuperAdmin, user } = useAuth()
   
-  // Pestañas (Tabs)
-  const [activeTab, setActiveTab] = useState<'usuarios' | 'anuncios'>('usuarios')
+  const [activeTab, setActiveTab] = useState<'usuarios' | 'anuncios' | 'autorizaciones'>('usuarios')
 
-  // Estados de Usuarios
   const [usuarios, setUsuarios] = useState<any[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterDept, setFilterDept] = useState<'TODOS' | 'CAE' | 'TI'>('TODOS')
   const [isUserModalOpen, setIsUserModalOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<any | null>(null)
+  
   const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<any | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
+  const [deleteObservation, setDeleteObservation] = useState('')
 
-  // Estados de Anuncios
   const [anuncios, setAnuncios] = useState<any[]>([])
   const [isLoadingAnuncios, setIsLoadingAnuncios] = useState(true)
   const [isAnnounceModalOpen, setIsAnnounceModalOpen] = useState(false)
@@ -34,14 +33,31 @@ export default function AdminPage() {
   const [isDeleteAnuncioModalOpen, setIsDeleteAnuncioModalOpen] = useState(false)
   const [anuncioToDelete, setAnuncioToDelete] = useState<any | null>(null)
 
+  const [solicitudes, setSolicitudes] = useState<any[]>([])
+  const [isLoadingSolicitudes, setIsLoadingSolicitudes] = useState(true)
+  const [filterStatus, setFilterStatus] = useState<'PENDIENTE' | 'APROBADO' | 'RECHAZADO'>('PENDIENTE')
+
   useEffect(() => {
     if (isAdmin) {
       fetchUsuarios()
       fetchAnuncios()
-    }
-  }, [isAdmin])
+      if (isSuperAdmin) fetchSolicitudes()
 
-  // --- LÓGICA DE USUARIOS ---
+      const canalSolicitudes = supabase
+        .channel('cambios-en-solicitudes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'solicitudes_cambio' },
+          () => {
+            if (isSuperAdmin) fetchSolicitudes()
+          }
+        )
+        .subscribe()
+
+      return () => { supabase.removeChannel(canalSolicitudes) }
+    }
+  }, [isAdmin, isSuperAdmin])
+
   const fetchUsuarios = async () => {
     setIsLoadingUsers(true)
     const { data } = await supabase.from('usuarios').select('*').order('id', { ascending: true })
@@ -51,12 +67,34 @@ export default function AdminPage() {
 
   const executeDeleteUser = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (deletePassword !== 'isAdmin02') { setDeleteError('Contraseña incorrecta.'); return; }
-    const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
-    if (!error) { setIsDeleteUserModalOpen(false); fetchUsuarios(); }
+
+    if (isSuperAdmin) {
+      // Super Admin borra directamente pidiendo contraseña
+      if (deletePassword !== 'isAdmin02') { setDeleteError('Contraseña de seguridad incorrecta.'); return; }
+      const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
+      if (!error) { setIsDeleteUserModalOpen(false); fetchUsuarios(); }
+    } else {
+      // Administrador regular levanta solicitud
+      if (!deleteObservation) { setDeleteError('La justificación es obligatoria.'); return; }
+      const { error } = await supabase.from('solicitudes_cambio').insert([{
+        solicitante: user?.name || 'Administrador',
+        tipo_solicitud: 'ELIMINAR_USUARIO',
+        tabla_destino: 'usuarios',
+        registro_id: userToDelete.id.toString(),
+        observacion: deleteObservation,
+        informacion_cambio: userToDelete
+      }])
+      
+      if (!error) {
+        alert('Solicitud de eliminación enviada a Gobernanza de TI.')
+        setIsDeleteUserModalOpen(false)
+        setDeleteObservation('')
+      } else {
+        alert('Error al generar la solicitud: ' + error.message)
+      }
+    }
   }
 
-  // --- LÓGICA DE ANUNCIOS ---
   const fetchAnuncios = async () => {
     setIsLoadingAnuncios(true)
     const { data } = await supabase.from('anuncios').select('*').order('created_at', { ascending: false })
@@ -72,6 +110,59 @@ export default function AdminPage() {
   const openNewAnuncioModal = () => { setEditingAnuncio(null); setIsAnnounceModalOpen(true); }
   const openEditAnuncioModal = (anuncio: any) => { setEditingAnuncio(anuncio); setIsAnnounceModalOpen(true); }
 
+  const fetchSolicitudes = async () => {
+    setIsLoadingSolicitudes(true)
+    const { data } = await supabase.from('solicitudes_cambio').select('*').order('creado_at', { ascending: false })
+    if (data) setSolicitudes(data)
+    setIsLoadingSolicitudes(false)
+  }
+
+  const handleAprobarSolicitud = async (solicitud: any) => {
+    try {
+      let queryError = null
+
+      if (solicitud.tipo_solicitud === 'ELIMINAR_TICKET') {
+        const { error } = await supabase.from('errors').delete().eq('id', solicitud.registro_id)
+        queryError = error
+      } else if (solicitud.tipo_solicitud === 'EDITAR_TICKET') {
+        const { error } = await supabase.from('errors').update(solicitud.informacion_cambio).eq('id', solicitud.registro_id)
+        queryError = error
+      } else if (solicitud.tipo_solicitud === 'ELIMINAR_USUARIO') {
+        const { error } = await supabase.from('usuarios').delete().eq('id', parseInt(solicitud.registro_id))
+        queryError = error
+      } else if (solicitud.tipo_solicitud === 'CREAR_USUARIO') {
+        const { error } = await supabase.from('usuarios').insert([solicitud.informacion_cambio])
+        queryError = error
+      } else if (solicitud.tipo_solicitud === 'EDITAR_USUARIO') {
+        const { error } = await supabase.from('usuarios').update(solicitud.informacion_cambio).eq('id', parseInt(solicitud.registro_id))
+        queryError = error
+      }
+
+      if (queryError) {
+        alert('Error operativo al ejecutar la acción en base de datos: ' + queryError.message)
+        return
+      }
+
+      await supabase
+        .from('solicitudes_cambio')
+        .update({ estado: 'APROBADO', procesado_por: user?.name || 'Administrador', procesado_at: new Date().toISOString() })
+        .eq('id', solicitud.id)
+
+      fetchSolicitudes()
+      fetchUsuarios()
+    } catch (err) {
+      console.error('Error de procesamiento:', err)
+    }
+  }
+
+  const handleRechazarSolicitud = async (solicitud: any) => {
+    await supabase
+      .from('solicitudes_cambio')
+      .update({ estado: 'RECHAZADO', procesado_por: user?.name || 'Administrador', procesado_at: new Date().toISOString() })
+      .eq('id', solicitud.id)
+    fetchSolicitudes()
+  }
+
   const filteredUsers = usuarios.filter((u) => {
     const term = searchTerm.toLowerCase()
     const matchSearch = (u.name?.toLowerCase().includes(term)) || (u.username?.toLowerCase().includes(term))
@@ -79,48 +170,56 @@ export default function AdminPage() {
     return matchSearch && matchDept
   })
 
-  if (!isAdmin) return null // Redirección o UI de denegado
+  const filteredSolicitudes = solicitudes.filter((s) => s.estado === filterStatus)
+
+  const formatFecha = (isoString: string) => {
+    if (!isoString) return ''
+    const fecha = new Date(isoString)
+    return fecha.toLocaleString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+  }
+
+  if (!isAdmin) return null
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
       
-      {/* HEADER DINÁMICO */}
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">
-            {activeTab === 'usuarios' ? 'Gestión de Usuarios' : 'Tablero de Anuncios'}
+            {activeTab === 'usuarios' ? 'Gestión de Usuarios' : activeTab === 'anuncios' ? 'Tablero de Comunicados' : 'Bandeja de Autorizaciones'}
           </h1>
           <p className="mt-1 text-sm text-slate-500">
             {activeTab === 'usuarios' 
-              ? 'Administra los accesos, roles y contraseñas del equipo.' 
-              : 'Crea, edita o elimina los avisos que ve el personal.'}
+              ? 'Administración de perfiles y permisos de sistema.' 
+              : activeTab === 'anuncios'
+              ? 'Gestión de comunicados y alertas operativas.'
+              : 'Gobernanza central: revisión de solicitudes críticas del sistema.'}
           </p>
         </div>
         
-        {activeTab === 'usuarios' ? (
-          <Button onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}>+ Nuevo Usuario</Button>
-        ) : (
-          <Button onClick={openNewAnuncioModal}> Nuevo Anuncio</Button>
+        {activeTab === 'usuarios' && (
+          <Button onClick={() => { setEditingUser(null); setIsUserModalOpen(true); }}>Nuevo Usuario</Button>
+        )}
+        {activeTab === 'anuncios' && (
+          <Button onClick={openNewAnuncioModal}>Nuevo Anuncio</Button>
         )}
       </div>
 
-      {/* PESTAÑAS (TABS) */}
       <div className="flex gap-6 border-b border-slate-200/60 pb-px">
-        <button 
-          onClick={() => setActiveTab('usuarios')}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'usuarios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-        >
-           Equipo y Accesos
+        <button onClick={() => setActiveTab('usuarios')} className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'usuarios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          Equipo y Accesos
         </button>
-        <button 
-          onClick={() => setActiveTab('anuncios')}
-          className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'anuncios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
-        >
-           Comunicados
+        <button onClick={() => setActiveTab('anuncios')} className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'anuncios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+          Comunicados
         </button>
+        {isSuperAdmin && (
+          <button onClick={() => setActiveTab('autorizaciones')} className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'autorizaciones' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+            Autorizaciones
+          </button>
+        )}
       </div>
 
-      {/* VISTA DE USUARIOS */}
+      {/* VISTA USUARIOS */}
       {activeTab === 'usuarios' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -129,7 +228,7 @@ export default function AdminPage() {
             </div>
             <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl">
               {['TODOS', 'CAE', 'TI'].map((tab) => (
-                <button key={tab} onClick={() => setFilterDept(tab as any)} className={`px-4 py-1.5 rounded-lg text-sm font-bold ${filterDept === tab ? 'bg-white shadow-sm' : 'text-slate-500'}`}>{tab}</button>
+                <button key={tab} onClick={() => setFilterDept(tab as any)} className={`px-4 py-1.5 rounded-lg text-sm font-bold ${filterDept === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>{tab}</button>
               ))}
             </div>
           </div>
@@ -141,7 +240,7 @@ export default function AdminPage() {
                   <th className="p-4">Nombre</th>
                   <th className="p-4">Usuario</th>
                   <th className="p-4">Rol / Accesos</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4 text-right">Controles</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white/40">
@@ -156,8 +255,8 @@ export default function AdminPage() {
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-exodus-600">✎</button>
-                      <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
+                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-exodus-600 border border-transparent hover:border-slate-200 rounded-lg transition-all mr-2">Editar</button>
+                      <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteObservation(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-lg transition-all">Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -167,31 +266,28 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* VISTA DE ANUNCIOS */}
+      {/* VISTA ANUNCIOS */}
       {activeTab === 'anuncios' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-200/60 text-xs text-slate-500 uppercase">
-                  <th className="p-4">Anuncio</th>
-                  <th className="p-4">Dirigido a</th>
-                  <th className="p-4">Importancia</th>
-                  <th className="p-4 text-right">Acciones</th>
+                  <th className="p-4">Comunicado</th>
+                  <th className="p-4">Destino</th>
+                  <th className="p-4">Nivel</th>
+                  <th className="p-4 text-right">Controles</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white/40">
                 {isLoadingAnuncios ? <tr><td colSpan={4} className="p-8 text-center text-slate-400">Cargando...</td></tr> : anuncios.map((a) => (
                   <tr key={a.id} className="hover:bg-white/60">
-                    <td className="p-4 max-w-xs">
-                      <div className="font-bold text-slate-900 truncate">{a.titulo}</div>
-                      <div className="text-xs text-slate-500 truncate mt-0.5">{a.mensaje}</div>
-                    </td>
+                    <td className="p-4 max-w-xs"><div className="font-bold text-slate-900 truncate">{a.titulo}</div><div className="text-xs text-slate-500 truncate mt-0.5">{a.mensaje}</div></td>
                     <td className="p-4"><span className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 border">{a.departamento}</span></td>
-                    <td className="p-4">{a.importancia === 'Alta' ? <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded-lg">🔥 Alta</span> : <span className="text-slate-500 text-xs">Normal</span>}</td>
+                    <td className="p-4">{a.importancia === 'Alta' ? <span className="text-red-600 text-xs font-bold bg-red-50 px-2 py-1 rounded-lg">Alta Prioridad</span> : <span className="text-slate-500 text-xs font-medium">Estándar</span>}</td>
                     <td className="p-4 text-right">
-                      <button onClick={() => openEditAnuncioModal(a)} className="p-2 text-slate-400 hover:text-exodus-600">✎</button>
-                      <button onClick={() => { setAnuncioToDelete(a); setIsDeleteAnuncioModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
+                      <button onClick={() => openEditAnuncioModal(a)} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-exodus-600 border border-transparent hover:border-slate-200 rounded-lg transition-all mr-2">Editar</button>
+                      <button onClick={() => { setAnuncioToDelete(a); setIsDeleteAnuncioModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-lg transition-all">Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -201,34 +297,109 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* --- ZONA DE MODALES --- */}
-      
-      {/* Modal Usuarios */}
-      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? "Editar Usuario" : "Nuevo Usuario"}>
+      {/* VISTA AUTORIZACIONES */}
+      {isSuperAdmin && activeTab === 'autorizaciones' && (
+        <div className="space-y-4 animate-in fade-in">
+          <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl w-fit">
+            {['PENDIENTE', 'APROBADO', 'RECHAZADO'].map((status) => (
+              <button key={status} onClick={() => setFilterStatus(status as any)} className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${filterStatus === status ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>
+                {status === 'PENDIENTE' ? 'Pendientes' : status === 'APROBADO' ? 'Aprobados' : 'Rechazados'}
+              </button>
+            ))}
+          </div>
+
+          <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-200/60 text-xs text-slate-500 uppercase">
+                  <th className="p-4">Solicitante</th>
+                  <th className="p-4">Operación</th>
+                  <th className="p-4">Justificación</th>
+                  <th className="p-4 text-right">Gobernanza</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white/40">
+                {isLoadingSolicitudes ? (
+                  <tr><td colSpan={4} className="p-8 text-center text-slate-400">Cargando datos...</td></tr>
+                ) : filteredSolicitudes.length === 0 ? (
+                  <tr><td colSpan={4} className="p-8 text-center text-slate-400">Bandeja limpia. No hay registros.</td></tr>
+                ) : (
+                  filteredSolicitudes.map((s) => (
+                    <tr key={s.id} className="hover:bg-white/60 transition-colors">
+                      <td className="p-4">
+                        <div className="font-bold text-slate-900">{s.solicitante}</div>
+                        <div className="text-xs text-slate-500 mt-0.5">{formatFecha(s.creado_at)}</div>
+                      </td>
+                      <td className="p-4">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${s.tipo_solicitud.includes('ELIMINAR') ? 'bg-red-50 text-red-600 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-200'}`}>
+                          {s.tipo_solicitud.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="p-4 text-sm text-slate-600 font-medium max-w-xs truncate">{s.observacion || 'Sin justificación provista'}</td>
+                      <td className="p-4 text-right">
+                        {s.estado === 'PENDIENTE' ? (
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => handleAprobarSolicitud(s)} className="px-3 py-1.5 bg-slate-800 text-white font-bold text-xs rounded-lg hover:bg-slate-900 transition-colors shadow-sm">Aprobar</button>
+                            <button onClick={() => handleRechazarSolicitud(s)} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-50 transition-colors">Rechazar</button>
+                          </div>
+                        ) : (
+                          <div className="text-xs font-semibold text-slate-500">
+                            {s.estado === 'APROBADO' ? 'Aprobado por ' : 'Rechazado por '}
+                            <span className="text-slate-800">{s.procesado_por}</span>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* MODALES */}
+      <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? "Editar Perfil" : "Nuevo Perfil"}>
         <AdminUserForm initialData={editingUser} onSuccess={() => { setIsUserModalOpen(false); fetchUsuarios(); }} onCancel={() => setIsUserModalOpen(false)} />
       </Modal>
 
-      {/* Modal Anuncios */}
-      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title={editingAnuncio ? "Editar Anuncio" : "Nuevo Anuncio"}>
+      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title={editingAnuncio ? "Editar Comunicado" : "Nuevo Comunicado"}>
         <AdminAnnounceForm initialData={editingAnuncio} onSuccess={() => { setIsAnnounceModalOpen(false); fetchAnuncios(); }} onCancel={() => setIsAnnounceModalOpen(false)} />
       </Modal>
 
-      {/* Modal Eliminar Usuario (CON Contraseña) */}
-      <Modal isOpen={isDeleteUserModalOpen} onClose={() => setIsDeleteUserModalOpen(false)} title={`Eliminar a ${userToDelete?.name}`}>
-        <form onSubmit={executeDeleteUser} className="text-center py-4">
-          <input type="password" placeholder="Contraseña maestra" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-4 py-3 text-center tracking-widest rounded-xl border mb-4" autoFocus />
-          {deleteError && <p className="text-red-500 text-xs mb-4">{deleteError}</p>}
-          <Button type="submit" className="w-full bg-red-600 hover:bg-red-700">Sí, eliminar usuario</Button>
+      <Modal isOpen={isDeleteUserModalOpen} onClose={() => setIsDeleteUserModalOpen(false)} title={`Eliminar cuenta: ${userToDelete?.name}`}>
+        <form onSubmit={executeDeleteUser} className="text-left py-4 space-y-4">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 mb-4">
+            Estás a punto de solicitar la eliminación del sistema para este usuario. Esta acción es irreversible tras su aprobación.
+          </div>
+          
+          {isSuperAdmin ? (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Contraseña de Seguridad</label>
+              <input type="password" placeholder="Requerida para acción directa" value={deletePassword} onChange={(e) => setDeletePassword(e.target.value)} className="w-full px-4 py-3 tracking-widest rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none" autoFocus />
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Justificación del cambio</label>
+              <textarea placeholder="Ej: El usuario ya no labora en la empresa..." value={deleteObservation} onChange={(e) => setDeleteObservation(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none" rows={3} autoFocus />
+            </div>
+          )}
+
+          {deleteError && <p className="text-red-500 text-xs font-semibold text-center">{deleteError}</p>}
+          
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsDeleteUserModalOpen(false)}>Cancelar</Button>
+            <Button type="submit" className="flex-1 bg-slate-800 hover:bg-slate-900 text-white">{isSuperAdmin ? 'Eliminar Definitivo' : 'Enviar Solicitud'}</Button>
+          </div>
         </form>
       </Modal>
 
-      {/* Modal Eliminar Anuncio (SIN Contraseña, más rápido) */}
-      <Modal isOpen={isDeleteAnuncioModalOpen} onClose={() => setIsDeleteAnuncioModalOpen(false)} title="Eliminar Anuncio">
+      <Modal isOpen={isDeleteAnuncioModalOpen} onClose={() => setIsDeleteAnuncioModalOpen(false)} title="Retirar Comunicado">
         <div className="text-center py-4 space-y-4">
-          <p className="text-sm text-slate-500">¿Estás seguro de que deseas eliminar este anuncio? Desaparecerá del tablero de todos inmediatamente.</p>
+          <p className="text-sm text-slate-500">¿Confirmas retirar este comunicado? Desaparecerá de las pantallas del personal de forma inmediata.</p>
           <div className="flex gap-3">
             <Button variant="secondary" className="flex-1" onClick={() => setIsDeleteAnuncioModalOpen(false)}>Cancelar</Button>
-            <button onClick={executeDeleteAnuncio} className="flex-1 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700">Sí, borrar</button>
+            <Button className="flex-1 bg-slate-800 hover:bg-slate-900 text-white" onClick={executeDeleteAnuncio}>Confirmar</Button>
           </div>
         </div>
       </Modal>

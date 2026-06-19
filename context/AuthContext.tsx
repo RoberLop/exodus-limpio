@@ -2,12 +2,13 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User, AuthState } from '@/lib/types'
-import { supabase } from '@/lib/supabase' // <-- Importamos la conexión a tu base de datos
+import { supabase } from '@/lib/supabase'
 
 interface AuthContextType extends AuthState {
   login: (username: string, password: string, area: 'CAE' | 'TI') => Promise<{success: boolean, error?: string}>
   logout: () => void
   isAdmin: boolean
+  isSuperAdmin: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -31,34 +32,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string, selectedArea: 'CAE' | 'TI'): Promise<{success: boolean, error?: string}> => {
     const cleanUsername = username.toLowerCase().trim()
     
-    // 1. Buscamos al usuario directamente en Supabase
     const { data: userRecord, error } = await supabase
       .from('usuarios')
       .select('*')
       .eq('username', cleanUsername)
       .single()
     
-    // 2. Si no existe o la contraseña no cuadra, lo rebotamos
     if (error || !userRecord || userRecord.password !== password) {
       return { success: false, error: 'Usuario o contraseña incorrectos' }
     }
 
-    // 3. Verificamos que el usuario TENGA PERMISO para entrar al área seleccionada
     if (!userRecord.departments.includes(selectedArea)) {
       return { success: false, error: `No tienes permisos para acceder a ${selectedArea}` }
     }
     
-    // 4. Armamos su sesión con los datos que trajo la base de datos
     const userSession: User = {
       id: userRecord.id.toString(),
       name: userRecord.name,
       email: userRecord.email,
       role: userRecord.role as 'admin' | 'user',
       departments: userRecord.departments,
-      department: selectedArea
+      department: selectedArea,
+      is_superadmin: userRecord.is_superadmin
     }
 
-    // 5. Lo dejamos pasar
     localStorage.setItem('exodus_user', JSON.stringify(userSession))
     setAuthState({
       user: userSession,
@@ -75,7 +72,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ ...authState, login, logout, isAdmin: authState.user?.role === 'admin' }}>
+    <AuthContext.Provider value={{ 
+      ...authState, 
+      login, 
+      logout, 
+      isAdmin: authState.user?.role === 'admin',
+      isSuperAdmin: authState.user?.is_superadmin || false
+    }}>
       {children}
     </AuthContext.Provider>
   )

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Select } from '@/components/ui/Select'
 import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/context/AuthContext' // <-- Importamos tu contexto
 
 interface AdminUserFormProps {
   initialData?: any
@@ -14,6 +15,7 @@ interface AdminUserFormProps {
 
 export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const { user, isSuperAdmin } = useAuth() // <-- Obtenemos la validación de SuperAdmin
   
   const [name, setName] = useState(initialData?.name || '')
   const [username, setUsername] = useState(initialData?.username || '')
@@ -56,21 +58,43 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
       departments
     }
 
-    let error;
+    if (isSuperAdmin) {
+      // FLUJO 1: Eres tú o el Super Admin. Se guarda directamente.
+      let error;
 
-    if (isEditing) {
-      const { error: updateError } = await supabase.from('usuarios').update(payload).eq('id', initialData.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await supabase.from('usuarios').insert([payload])
-      error = insertError
-    }
+      if (isEditing) {
+        const { error: updateError } = await supabase.from('usuarios').update(payload).eq('id', initialData.id)
+        error = updateError
+      } else {
+        const { error: insertError } = await supabase.from('usuarios').insert([payload])
+        error = insertError
+      }
 
-    if (error) {
-      console.error('Error al guardar usuario:', error)
-      alert(error.message?.includes('duplicate key') ? 'Ese nombre de usuario ya existe. Elige otro.' : 'Error al guardar el usuario.')
+      if (error) {
+        console.error('Error al guardar usuario:', error)
+        alert(error.message?.includes('duplicate key') ? 'Ese nombre de usuario ya existe. Elige otro.' : 'Error al guardar el usuario.')
+      } else {
+        onSuccess()
+      }
     } else {
-      onSuccess()
+      // FLUJO 2: Es un Admin normal. Se envía a la Bandeja de Autorizaciones.
+      const tipoAccion = isEditing ? 'EDITAR_USUARIO' : 'CREAR_USUARIO'
+      
+      const { error } = await supabase.from('solicitudes_cambio').insert([{
+        solicitante: user?.name || 'Administrador',
+        tipo_solicitud: tipoAccion,
+        tabla_destino: 'usuarios',
+        registro_id: isEditing ? initialData.id.toString() : 'NUEVO',
+        observacion: `Solicitud de validación para ${isEditing ? 'editar' : 'crear'} perfil de usuario.`,
+        informacion_cambio: payload
+      }])
+
+      if (error) {
+        alert('Error al generar la solicitud de autorización: ' + error.message)
+      } else {
+        alert('Tu solicitud ha sido enviada a la bandeja de autorizaciones para la aprobación de Gobernanza TI.')
+        onSuccess()
+      }
     }
     
     setIsLoading(false)
@@ -151,7 +175,8 @@ export function AdminUserForm({ initialData, onSuccess, onCancel }: AdminUserFor
           Cancelar
         </Button>
         <Button type="submit" className="flex-1" isLoading={isLoading}>
-          {isEditing ? 'Guardar Cambios' : 'Crear Usuario'}
+          {/* El botón cambia inteligentemente su texto según los permisos */}
+          {!isSuperAdmin ? 'Enviar Solicitud' : (isEditing ? 'Guardar Cambios' : 'Crear Usuario')}
         </Button>
       </div>
     </form>

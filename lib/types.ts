@@ -4,8 +4,9 @@ export interface User {
   email: string
   avatar?: string
   role: 'admin' | 'user'
-  departments: ('CAE' | 'TI')[] 
-  department?: 'CAE' | 'TI'     
+  departments: ('CAE' | 'TI')[]
+  department?: 'CAE' | 'TI'    
+  is_superadmin?: boolean
 }
 
 export type OperationalArea = 
