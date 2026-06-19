@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/select'
+import { Select } from '@/components/ui/Select'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
 

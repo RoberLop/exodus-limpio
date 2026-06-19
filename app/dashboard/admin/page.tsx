@@ -156,7 +156,7 @@ export default function AdminPage() {
                       </div>
                     </td>
                     <td className="p-4 text-right">
-                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-exodus-600">✏️</button>
+                      <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-exodus-600">✎</button>
                       <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="p-2 text-slate-400 hover:text-red-500">🗑️</button>
                     </td>
                   </tr>
