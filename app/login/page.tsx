@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
-import { Select } from '@/components/ui/Select' 
+import { Select } from '@/components/ui/SelectMenu' 
 import { useAuth } from '@/context/AuthContext'
 
 export default function LoginPage() {
