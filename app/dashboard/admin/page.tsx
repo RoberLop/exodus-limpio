@@ -13,7 +13,6 @@ export default function AdminPage() {
   
   const [activeTab, setActiveTab] = useState<'usuarios' | 'anuncios' | 'autorizaciones'>('usuarios')
 
-  // --- NUEVO: SISTEMA DE NOTIFICACIONES ELEGANTES (Sustituto de alert) ---
   const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null)
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type })
@@ -52,7 +51,6 @@ export default function AdminPage() {
   const [solicitudes, setSolicitudes] = useState<any[]>([])
   const [isLoadingSolicitudes, setIsLoadingSolicitudes] = useState(true)
   const [filterStatus, setFilterStatus] = useState<'PENDIENTE' | 'APROBADO' | 'RECHAZADO'>('PENDIENTE')
-  // Filtro de departamento para los SuperAdmins
   const [authDeptFilter, setAuthDeptFilter] = useState<'TODOS' | 'CAE' | 'TI'>('TODOS')
 
   useEffect(() => {
@@ -160,7 +158,6 @@ export default function AdminPage() {
     setIsLoadingSolicitudes(true)
     let query = supabase.from('solicitudes_cambio').select('*').order('creado_at', { ascending: false })
     
-    // Si NO es super admin, solo puede ver sus propias solicitudes
     if (!isSuperAdmin) {
       query = query.eq('solicitante', user?.name)
     }
@@ -190,7 +187,6 @@ export default function AdminPage() {
         const { error } = await supabase.from('usuarios').update(solicitud.informacion_cambio).eq('id', parseInt(solicitud.registro_id))
         queryError = error
       }
-      // Si es VER_PASSWORD no hacemos nada en la DB operativa, solo aprobamos la solicitud.
 
       if (queryError) {
         showToast('Error operativo en base de datos: ' + queryError.message, 'error')
@@ -210,10 +206,16 @@ export default function AdminPage() {
     }
   }
 
+  // --- LÓGICA DE RECHAZO CON MOTIVO ---
   const handleRechazarSolicitud = async (solicitud: any) => {
+    const motivo = window.prompt('¿Cuál es el motivo del rechazo? (El administrador lo verá en su bandeja)')
+    if (motivo === null) return // Si le da a cancelar
+
+    const firmaRechazo = `${user?.name || 'Administrador'}${motivo ? ` - Motivo: ${motivo}` : ''}`
+
     await supabase
       .from('solicitudes_cambio')
-      .update({ estado: 'RECHAZADO', procesado_por: user?.name || 'Administrador', procesado_at: new Date().toISOString() })
+      .update({ estado: 'RECHAZADO', procesado_por: firmaRechazo, procesado_at: new Date().toISOString() })
       .eq('id', solicitud.id)
     
     showToast('Solicitud rechazada.', 'error')
@@ -233,6 +235,11 @@ export default function AdminPage() {
     return matchStatus && matchDept
   })
 
+  // --- CÁLCULO DE INSIGNIAS (NOTIFICACIONES EN LAS PESTAÑAS) ---
+  const pendingAuthCount = isSuperAdmin 
+    ? solicitudes.filter(s => s.estado === 'PENDIENTE').length 
+    : solicitudes.filter(s => s.estado !== 'PENDIENTE' && s.solicitante === user?.name).length
+
   const formatFecha = (isoString: string) => {
     if (!isoString) return ''
     const fecha = new Date(isoString)
@@ -244,7 +251,6 @@ export default function AdminPage() {
   return (
     <div className="space-y-6 animate-in fade-in duration-300 relative">
       
-      {/* --- EL TOAST PREMIUM (NOTIFICACIÓN FLOTANTE) --- */}
       {toast && (
         <div className={`fixed bottom-6 right-6 px-6 py-4 rounded-xl shadow-2xl z-[100] border transition-all animate-in slide-in-from-bottom-5 fade-in duration-300 ${
           toast.type === 'success' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-red-50 text-red-700 border-red-200'
@@ -285,9 +291,15 @@ export default function AdminPage() {
         <button onClick={() => setActiveTab('anuncios')} className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'anuncios' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           Comunicados
         </button>
-        {/* AHORA TODOS LOS ADMINS VEN ESTA PESTAÑA */}
-        <button onClick={() => setActiveTab('autorizaciones')} className={`pb-3 text-sm font-bold border-b-2 transition-all ${activeTab === 'autorizaciones' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
+        
+        {/* PESTAÑA CON INSIGNIA DE NOTIFICACIÓN */}
+        <button onClick={() => setActiveTab('autorizaciones')} className={`relative pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'autorizaciones' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           Autorizaciones
+          {pendingAuthCount > 0 && (
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${isSuperAdmin ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}>
+              {pendingAuthCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -328,11 +340,6 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4 text-right">
                       <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-exodus-600 border border-transparent hover:border-slate-200 rounded-lg transition-all mr-2">Editar</button>
-                      
-                      {!isSuperAdmin && (
-                        <button onClick={() => { setUserForPassword(u); setPasswordObservation(''); setPasswordError(''); setIsPasswordModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-blue-500 hover:bg-blue-50 border border-transparent hover:border-blue-200 rounded-lg transition-all mr-2">Credenciales</button>
-                      )}
-
                       <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteObservation(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-lg transition-all">Eliminar</button>
                     </td>
                   </tr>
@@ -386,7 +393,6 @@ export default function AdminPage() {
               ))}
             </div>
             
-            {/* Filtro de departamento solo para el SuperAdmin que ve todo */}
             {isSuperAdmin && (
               <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl w-fit">
                 {['TODOS', 'CAE', 'TI'].map((tab) => (
@@ -423,11 +429,16 @@ export default function AdminPage() {
                           {s.tipo_solicitud.replace('_', ' ')}
                         </span>
                         {s.departamento !== 'TODOS' && <span className="ml-2 text-[10px] text-slate-500 font-bold border border-slate-200 px-1.5 rounded">{s.departamento}</span>}
+                        {s.tipo_solicitud === 'VER_PASSWORD' && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                            🚨 PRIORIDAD ALTA
+                          </div>
+                        )}
                       </td>
                       <td className="p-4 text-sm text-slate-600 font-medium max-w-xs">
                         <div className="truncate">{s.observacion || 'Sin justificación provista'}</div>
                         
-                        {/* MAGIA DE VER CONTRASEÑA: Si está aprobada, fue petición de contraseña y soy el que la pidió */}
+                        {/* VISUALIZACIÓN DE CONTRASEÑA */}
                         {!isSuperAdmin && s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
                           <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
                             <span className="font-bold text-emerald-800">Credencial de {s.informacion_cambio?.name}: </span>
@@ -447,7 +458,7 @@ export default function AdminPage() {
                           )
                         ) : (
                           <div className="text-xs font-semibold text-slate-500">
-                            {s.estado === 'APROBADO' ? '✅ Aprobado por ' : '❌ Rechazado por '}
+                            {s.estado === 'APROBADO' ? '✅ Aprobado por ' : '❌ '}
                             <span className="text-slate-800">{s.procesado_por}</span>
                           </div>
                         )}
@@ -463,11 +474,21 @@ export default function AdminPage() {
 
       {/* --- MODALES --- */}
       <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? "Editar Perfil" : "Nuevo Perfil"}>
-        <AdminUserForm initialData={editingUser} onSuccess={(msg) => { setIsUserModalOpen(false); fetchUsuarios(); showToast(msg); }} onCancel={() => setIsUserModalOpen(false)} />
+        <AdminUserForm 
+          initialData={editingUser} 
+          onSuccess={(msg) => { setIsUserModalOpen(false); fetchUsuarios(); showToast(msg); }} 
+          onCancel={() => setIsUserModalOpen(false)} 
+          onRequestPassword={(userData) => {
+            setIsUserModalOpen(false)
+            setUserForPassword(userData)
+            setPasswordObservation('')
+            setPasswordError('')
+            setIsPasswordModalOpen(true)
+          }}
+        />
       </Modal>
 
       <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title={editingAnuncio ? "Editar Comunicado" : "Nuevo Comunicado"}>
-        {/* Usamos un setTimeout para simular el paso del mensaje si el componente AdminAnnounce no fue actualizado todavía con prop message */}
         <AdminAnnounceForm initialData={editingAnuncio} onSuccess={() => { setIsAnnounceModalOpen(false); fetchAnuncios(); showToast('Anuncio publicado correctamente.'); }} onCancel={() => setIsAnnounceModalOpen(false)} />
       </Modal>
 
@@ -498,11 +519,11 @@ export default function AdminPage() {
         </form>
       </Modal>
 
-      {/* NUEVO MODAL: Pedir ver contraseña */}
+      {/* NUEVO MODAL: Pedir ver contraseña (Viene del Ojito) */}
       <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="Solicitar Ver Credenciales">
         <form onSubmit={executeRequestPassword} className="text-left py-4 space-y-4">
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-700 mb-4">
-            Solicitarás acceso de lectura para la contraseña de <strong>{userForPassword?.name}</strong>. Esto requiere aprobación superior.
+            Solicitarás acceso de lectura para la contraseña de <strong>{userForPassword?.name}</strong>. Esto requiere aprobación de Gobernanza.
           </div>
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1">Justificación obligatoria</label>
