@@ -354,8 +354,13 @@ export function GlobalRequestWidget() {
               : "bg-sky-500/80 border-white/40 text-white hover:bg-sky-400/90 hover:scale-105 shadow-sky-500/30"
           )}
         >
-          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          {/* Icono de Arquitectura Modular (Tech Core) */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+            <rect x="10" y="3" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="10" y="17" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="3" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="17" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
           </svg>
           
           {/* Insignia de Notificación */}
