@@ -11,18 +11,17 @@ export function GlobalRequestWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [dismissedIds, setDismissedIds] = useState<number[]>([])
 
-  // Gestión de estado local para peticiones inline
   const [processingId, setProcessingId] = useState<number | null>(null)
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  // Referencias para motor de arrastre ultra fluido (Direct DOM Manipulation)
+  // Referencias para motor de arrastre optimizado (Hardware Accelerated)
   const widgetRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const currentPos = useRef({ x: 0, y: 0 })
   const startPos = useRef({ x: 0, y: 0 })
+  const dragBounds = useRef({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
 
-  // Inicialización de persistencia local
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('exodus_dismissed_requests')
@@ -30,7 +29,6 @@ export function GlobalRequestWidget() {
     }
   }, [])
 
-  // Sincronización Supabase Realtime
   useEffect(() => {
     if (!isAuthenticated || !user) return
 
@@ -59,40 +57,67 @@ export function GlobalRequestWidget() {
     return () => { supabase.removeChannel(canal) }
   }, [user, isSuperAdmin, isAuthenticated])
 
-  // Motor de arrastre (Drag & Drop) optimizado con colisiones
+  // Motor de arrastre sin Layout Thrashing (Rendimiento 60FPS)
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true
+    
     startPos.current = {
       x: e.clientX - currentPos.current.x,
       y: e.clientY - currentPos.current.y
     }
+    
     document.body.style.userSelect = 'none'
+
+    if (widgetRef.current) {
+      // Apagamos las transiciones CSS temporalmente para evitar latencia
+      widgetRef.current.style.transition = 'none'
+      
+      // Calculamos los límites de la pantalla una sola vez por arrastre
+      const rect = widgetRef.current.getBoundingClientRect()
+      dragBounds.current = {
+        maxX: 24,
+        minX: -window.innerWidth + rect.width + 24,
+        maxY: 24,
+        minY: -window.innerHeight + rect.height + 24
+      }
+    }
   }
 
   useEffect(() => {
+    let animationFrameId: number
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!isDragging.current || !widgetRef.current) return
 
       let newX = e.clientX - startPos.current.x
       let newY = e.clientY - startPos.current.y
 
-      // Cálculos de colisión con los bordes de la ventana
-      const rect = widgetRef.current.getBoundingClientRect()
-      const maxX = 24 // Margen derecho (por ser right-6 default)
-      const minX = -window.innerWidth + rect.width + 24
-      const maxY = 24 // Margen inferior
-      const minY = -window.innerHeight + rect.height + 24
-
+      const { minX, maxX, minY, maxY } = dragBounds.current
       newX = Math.min(Math.max(newX, minX), maxX)
       newY = Math.min(Math.max(newY, minY), maxY)
 
       currentPos.current = { x: newX, y: newY }
-      widgetRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0)`
+      
+      // Uso de requestAnimationFrame para sincronizar con la tasa de refresco del monitor
+      animationFrameId = requestAnimationFrame(() => {
+        if (widgetRef.current) {
+          widgetRef.current.style.transform = `translate3d(${newX}px, ${newY}px, 0)`
+        }
+      })
     }
 
     const handleMouseUp = () => {
       isDragging.current = false
       document.body.style.userSelect = ''
+      
+      if (widgetRef.current) {
+        // Restauramos las transiciones de Tailwind
+        widgetRef.current.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }
+      
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId)
+      }
     }
 
     window.addEventListener('mousemove', handleMouseMove)
@@ -101,10 +126,11 @@ export function GlobalRequestWidget() {
     return () => {
       window.removeEventListener('mousemove', handleMouseMove)
       window.removeEventListener('mouseup', handleMouseUp)
+      if (animationFrameId) cancelAnimationFrame(animationFrameId)
     }
-  }, [isOpen]) // Dependencia isOpen para recalcular colisiones al expandir
+  }, [])
 
-  // Ajuste automático al expandir para evitar cortes superiores
+  // Recálculo de límites al expandir o contraer el widget
   useEffect(() => {
     if (isOpen && widgetRef.current) {
       const rect = widgetRef.current.getBoundingClientRect()
@@ -116,7 +142,6 @@ export function GlobalRequestWidget() {
     }
   }, [isOpen])
 
-  // Gobernanza: Ejecución de autorización
   const handleAprobar = async (solicitud: any) => {
     setProcessingId(solicitud.id)
     try {
@@ -157,7 +182,6 @@ export function GlobalRequestWidget() {
     setProcessingId(null)
   }
 
-  // Gobernanza: Rechazo formal
   const handleConfirmRechazo = async (solicitud: any) => {
     if (!rejectReason.trim()) return
     setProcessingId(solicitud.id)
@@ -191,17 +215,15 @@ export function GlobalRequestWidget() {
   return (
     <div 
       ref={widgetRef}
-      className="fixed bottom-6 right-6 z-[999] flex flex-col items-end animate-in fade-in duration-300"
+      className="fixed bottom-6 right-6 z-[999] flex flex-col items-end animate-in fade-in duration-300 transition-transform"
       style={{ transform: 'translate3d(0px, 0px, 0px)', willChange: 'transform' }}
     >
       
-      {/* Panel Expandido */}
       {isOpen && (
         <div className="mb-4 w-80 sm:w-96 glass rounded-2xl shadow-2xl border border-slate-200/60 overflow-hidden flex flex-col">
           
-          {/* Cabecera del Panel (Arrastrable) */}
           <div 
-            className="bg-slate-800 p-4 flex justify-between items-center shadow-md cursor-move"
+            className="bg-slate-800 p-4 flex justify-between items-center shadow-md cursor-move select-none"
             onMouseDown={handleMouseDown}
           >
             <div className="flex items-center gap-2 text-white font-bold text-sm pointer-events-none">
@@ -220,13 +242,11 @@ export function GlobalRequestWidget() {
             </button>
           </div>
 
-          {/* Listado de Registros */}
           <div className="max-h-[26rem] overflow-y-auto custom-scrollbar p-3 bg-slate-50/50">
             {displayRequests.length === 0 ? (
               <p className="text-center text-slate-400 text-xs py-6 font-medium">Bandeja limpia. No hay registros pendientes.</p>
             ) : (
               displayRequests.map(s => {
-                // Extracción robusta del objetivo (Manejo de JSONB)
                 let infoData = s.informacion_cambio
                 if (typeof infoData === 'string') {
                   try { infoData = JSON.parse(infoData) } catch (e) {}
@@ -258,7 +278,6 @@ export function GlobalRequestWidget() {
                           {s.departamento !== 'TODOS' && ` (${s.departamento})`}
                         </p>
                         
-                        {/* Información detallada del objetivo */}
                         <div className="bg-slate-50 p-2 rounded border border-slate-100">
                           <p className="text-[11px] text-slate-500">
                             Objetivo: <strong className="text-slate-800">{targetName}</strong>
@@ -272,7 +291,6 @@ export function GlobalRequestWidget() {
                           <span className="font-semibold">Motivo de solicitud:</span> {s.observacion}
                         </p>
                         
-                        {/* Gobernanza */}
                         {rejectingId === s.id ? (
                           <div className="mt-2 space-y-2 animate-in fade-in zoom-in-95 duration-200">
                             <textarea 
@@ -297,7 +315,6 @@ export function GlobalRequestWidget() {
                       </div>
                     ) : (
                       <div className="space-y-2 mt-2">
-                        {/* Información detallada para el usuario */}
                         <div className="bg-slate-50 p-2 rounded border border-slate-100">
                           <p className="text-[11px] text-slate-500">
                             Objetivo: <strong className="text-slate-800">{targetName}</strong>
@@ -309,14 +326,12 @@ export function GlobalRequestWidget() {
                         
                         <p className="text-[11px] text-slate-500 line-clamp-2 pt-1">{s.observacion}</p>
                         
-                        {/* Retroalimentación de rechazo */}
                         {s.estado === 'RECHAZADO' && (
                           <div className="mt-2 p-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-700">
                             <span className="font-bold">Gobernanza TI:</span> {s.procesado_por?.split('- Motivo: ')[1] || 'Solicitud denegada.'}
                           </div>
                         )}
 
-                        {/* Credencial Aprobada */}
                         {s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
                           <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
                             <span className="font-bold text-emerald-800">Credencial autorizada: </span>
@@ -342,7 +357,7 @@ export function GlobalRequestWidget() {
         </div>
       )}
 
-      {/* Burbuja Principal (Arrastrable) */}
+      {/* Control flotante (Arrastrable) */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         onMouseDown={handleMouseDown}
@@ -362,7 +377,6 @@ export function GlobalRequestWidget() {
             </svg>
           )}
           
-          {/* Indicador Numérico */}
           {!isOpen && totalRelevant > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
