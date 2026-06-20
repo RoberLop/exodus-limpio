@@ -5,6 +5,7 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Diccionario de etiquetas de interfaz
 export const areaLabels: Record<string, string> = {
   global: 'Soluciones Globales',
   exodus: 'Exodus',
@@ -28,8 +29,10 @@ export const areaLabels: Record<string, string> = {
   categoria_4: 'Categoría 4',
   categoria_5: 'Categoría 5',
   categoria_6: 'Categoría 6',
+  caidas: 'Historial de Caídas' // Etiqueta registrada
 }
 
+// Diccionario de iconografía
 export const areaIcons: Record<string, string> = {
   global: '🌎',
   exodus: '📁',
@@ -53,8 +56,10 @@ export const areaIcons: Record<string, string> = {
   categoria_4: '',
   categoria_5: '',
   categoria_6: '',
+  caidas: '' // Icono registrado
 }
 
+// Diccionario de paleta de colores corporativos
 export const areaColors: Record<string, string> = {
   global: 'from-slate-800 to-slate-900',
   exodus: 'from-indigo-500 to-blue-700',
@@ -77,5 +82,6 @@ export const areaColors: Record<string, string> = {
   categoria_3: 'from-teal-500 to-emerald-600',
   categoria_4: 'from-orange-500 to-red-600',
   categoria_5: 'from-cyan-500 to-sky-600',
-  categoria_6: 'from-rose-500 to-pink-600'
+  categoria_6: 'from-rose-500 to-pink-600',
+  caidas: 'from-red-600 to-red-800' // Degradado registrado
 }

@@ -32,6 +32,7 @@ export type OperationalArea =
   | 'categoria_4'
   | 'categoria_5'
   | 'categoria_6'
+  | 'caidas' // Nueva área operativa registrada
 
 export interface ErrorSolution {
   id: string

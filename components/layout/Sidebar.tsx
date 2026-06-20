@@ -23,14 +23,12 @@ export function Sidebar() {
   const { user, logout, isAdmin, isLoading } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
-  // Estados de declaración de falla masiva
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDescription, setReportDescription] = useState('')
   const [reportDept, setReportDept] = useState('TODOS')
   const [isReporting, setIsReporting] = useState(false)
   
-  // Estado para la foto inicial del incidente
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
 
@@ -40,7 +38,6 @@ export function Sidebar() {
     if (!isLoading && !user) router.push('/login')
   }, [user, isLoading, router])
 
-  // Procesamiento de captura de pantalla inicial
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -50,7 +47,6 @@ export function Sidebar() {
     }
   }
 
-  // Envío del incidente masivo a Supabase
   const handleReportDowntime = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsReporting(true)
@@ -60,7 +56,7 @@ export function Sidebar() {
       descripcion: reportDescription,
       departamento: reportDept,
       creado_por: user?.name || 'Administrador',
-      screenshot_url: screenshotPreview // Guardado de la imagen base64 o link
+      screenshot_url: screenshotPreview
     }])
 
     if (error) {
@@ -77,7 +73,7 @@ export function Sidebar() {
   return (
     <>
       <aside className="fixed left-0 top-0 bottom-0 w-72 p-4 z-40">
-        <div className="h-full glass rounded-3xl flex flex-col overflow-hidden relative border border-white/20">
+        <div className="h-full glass rounded-3xl flex flex-col overflow-hidden relative border border-slate-200/50 shadow-sm">
           
           <div className="p-6 border-b border-slate-200/50">
             <div className="flex items-center gap-3">
@@ -144,20 +140,20 @@ export function Sidebar() {
               )
             })}
 
-            {/* SECCIÓN REUBICADA: CENTRO DE INFORMACIÓN Y ACCIÓN DE CAÍDAS */}
+            {/* SECCIÓN REUBICADA: GOBERNANZA, COMUNICADOS E INCIDENTES */}
             <div className="pt-4 mt-4 border-t border-slate-200/50 space-y-2">
               <Link href="/dashboard/informacion" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/informacion') ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700')}>
                 <span className="text-lg">📢</span><span>Centro de Información</span>
               </Link>
 
+              <Link href="/dashboard/caidas" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/caidas') ? 'bg-red-50 border border-red-100 text-red-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-red-50/50 hover:text-red-700')}>
+                <span className="text-lg">🚨</span><span>Historial de Caídas</span>
+              </Link>
+
               <button 
                 onClick={() => setIsReportModalOpen(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 transition-colors shadow-sm"
+                className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition-colors shadow-md shadow-red-600/20"
               >
-                <span className="flex h-2 w-2 relative">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                </span>
                 Reportar Caída Masiva
               </button>
             </div>
@@ -169,7 +165,6 @@ export function Sidebar() {
                 <Link href="/dashboard/logs" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/logs') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">📖</span><span>Historial Logs</span></Link>
               </>
             )}
-
           </nav>
 
           <div className="p-4 border-t border-slate-200/50">
@@ -185,17 +180,16 @@ export function Sidebar() {
       <GlobalRequestWidget />
       <MajorIncidentBanner />
 
-      {/* Modal: Apertura de Incidente Crítico */}
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Declaración de Incidente Mayor">
         <form onSubmit={handleReportDowntime} className="space-y-5 py-2">
           <div className="bg-red-50 border border-red-100 p-4 rounded-xl text-xs text-red-700 font-medium">
-            Al confirmar esta acción, se disparará una alerta en las pantallas del departamento destino con un cronómetro de inactividad. Utilizar únicamente en casos críticos.
+            Al confirmar esta acción, se teñirá la plataforma de rojo y se disparará una alerta con cronómetro en las pantallas del departamento destino.
           </div>
           
           <Input label="Título de la Falla" required placeholder="Ej: Caída de Base de Datos Principal" value={reportTitle} onChange={(e: any) => setReportTitle(e.target.value)} />
           
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Observaciones</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Síntomas</label>
             <textarea required rows={3} placeholder="Describa el impacto actual..." value={reportDescription} onChange={(e) => setReportDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none text-sm" />
           </div>
 
@@ -208,14 +202,24 @@ export function Sidebar() {
             </select>
           </div>
 
-          {/* Carga de captura fotográfica inicial */}
+          {/* Carga de captura fotográfica inicial optimizada */}
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Captura de la Falla (Opcional)</label>
-            <div className="flex items-center gap-4">
-              <button type="button" onClick={() => imageInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200">
-                Subir Foto de Error
-              </button>
-              {screenshotPreview && <span className="text-xs text-emerald-600 font-bold">Imagen cargada correctamente</span>}
+            <label className="block text-sm font-bold text-slate-700 mb-2">Captura de la Falla (Recomendado)</label>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center gap-4">
+                <button type="button" onClick={() => imageInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200">
+                  📎 Adjuntar Captura
+                </button>
+                {screenshotPreview && <span className="text-xs text-emerald-600 font-bold">✓ Imagen adjuntada</span>}
+              </div>
+              {screenshotPreview && (
+                <div className="relative w-full max-w-xs rounded-lg overflow-hidden border border-slate-200 shadow-sm">
+                  <img src={screenshotPreview} alt="Preview" className="w-full h-auto object-cover" />
+                  <button type="button" onClick={() => setScreenshotPreview(null)} className="absolute top-1 right-1 bg-white/80 p-1 rounded hover:bg-red-50 hover:text-red-500 text-slate-600">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              )}
             </div>
             <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
           </div>
