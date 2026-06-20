@@ -355,14 +355,14 @@ export function GlobalRequestWidget() {
           isSpeedDialOpen ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-4 scale-95 pointer-events-none"
         )}
       >
-        {/* NUEVO BOTÓN: Solo visible si el usuario es un administrador */}
+        {/* BOTÓN: Solo visible si el usuario es un administrador */}
         {isAdmin && (
           <button 
             onClick={() => { setIsAnnounceModalOpen(true); setIsSpeedDialOpen(false); }} 
-            className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
+            className="flex items-center justify-end gap-3 w-52 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all group"
           >
             <span className="font-bold text-sm text-slate-700 group-hover:text-cyan-600 transition-colors">Publicar Anuncio</span>
-            <div className="w-10 h-10 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 shadow-inner">
+            <div className="w-10 h-10 shrink-0 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 shadow-inner">
               📢
             </div>
           </button>
@@ -371,7 +371,7 @@ export function GlobalRequestWidget() {
         <button 
           onClick={() => { setIsAuthPanelOpen(true); setIsSpeedDialOpen(false); }} 
           className={cn(
-            "flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border rounded-full hover:scale-105 transition-all text-left group relative",
+            "flex items-center justify-end gap-3 w-52 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border rounded-full hover:scale-105 transition-all group relative",
             notificationCount > 0 
               ? "border-sky-300 shadow-lg shadow-sky-500/30" 
               : "border-slate-200/60 shadow-xl shadow-slate-200/50 hover:bg-slate-50"
@@ -379,7 +379,7 @@ export function GlobalRequestWidget() {
         >
           <span className="font-bold text-sm text-slate-700 group-hover:text-sky-500 transition-colors">Autorizaciones</span>
           <div className={cn(
-            "w-10 h-10 rounded-full flex items-center justify-center transition-all relative",
+            "w-10 h-10 shrink-0 rounded-full flex items-center justify-center transition-all relative",
             notificationCount > 0 
               ? "bg-sky-100 border border-sky-300 text-sky-600 shadow-[0_0_15px_rgba(14,165,233,0.5)]" 
               : "bg-sky-50 border border-sky-100 text-sky-500 shadow-inner"
@@ -396,10 +396,10 @@ export function GlobalRequestWidget() {
         
         <button 
           onClick={() => { setIsReportModalOpen(true); setIsSpeedDialOpen(false); }} 
-          className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
+          className="flex items-center justify-end gap-3 w-52 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all group"
         >
           <span className="font-bold text-sm text-slate-700 group-hover:text-red-600 transition-colors">Reportar Caída</span>
-          <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shadow-inner">
+          <div className="w-10 h-10 shrink-0 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shadow-inner">
             🚨
           </div>
         </button>
