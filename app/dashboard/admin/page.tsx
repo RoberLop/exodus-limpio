@@ -431,7 +431,7 @@ export default function AdminPage() {
                         {s.departamento !== 'TODOS' && <span className="ml-2 text-[10px] text-slate-500 font-bold border border-slate-200 px-1.5 rounded">{s.departamento}</span>}
                         {s.tipo_solicitud === 'VER_PASSWORD' && (
                           <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                            🚨 PRIORIDAD ALTA
+                             PRIORIDAD ALTA
                           </div>
                         )}
                       </td>
