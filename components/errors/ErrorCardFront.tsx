@@ -1,7 +1,6 @@
 'use client'
 
 import { ErrorCard } from '@/lib/types'
-import { Badge } from '@/components/ui/Badge'
 import { useEffect, useState } from 'react'
 
 interface ErrorCardFrontProps {
@@ -9,8 +8,10 @@ interface ErrorCardFrontProps {
 }
 
 export function ErrorCardFront({ error }: ErrorCardFrontProps) {
+  // Gestión de estado local
   const [imgSrc, setImgSrc] = useState<string>('');
 
+  // Procesamiento de renderizado de imagen (Base64 / URL)
   useEffect(() => {
     if (error.screenshotUrl && error.screenshotUrl.startsWith('data:image')) {
       try {
@@ -31,6 +32,7 @@ export function ErrorCardFront({ error }: ErrorCardFrontProps) {
     }
   }, [error.screenshotUrl]);
 
+  // Renderizado de tarjeta principal
   return (
     <div className="h-full w-full rounded-3xl overflow-hidden bg-white shadow-card border border-slate-100 transition-all duration-300 group-hover:shadow-card-hover group-hover:scale-[1.02]">
       <div className="relative h-full w-full bg-slate-100 min-h-[160px]">
@@ -40,16 +42,10 @@ export function ErrorCardFront({ error }: ErrorCardFrontProps) {
           <div className="flex items-center justify-center h-full text-slate-400">Sin imagen</div>
         )}
         
-        {/* Degradado original de arriba */}
+        {/* Superposición de gradiente superior */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent" />
         
-        {error.code && (
-          <div className="absolute top-4 left-4">
-            <Badge variant="error" size="md">{error.code}</Badge>
-          </div>
-        )}
-
-        {/* --- LO ÚNICO NUEVO: El título del error en la parte de abajo --- */}
+        {/* Contenedor de título (Superposición inferior) */}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-4 pt-12 pointer-events-none">
           <h3 className="text-white font-bold text-lg leading-tight line-clamp-2 drop-shadow-md">
             {error.title}
