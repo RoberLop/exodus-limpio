@@ -8,11 +8,13 @@ import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 import { GlobalRequestWidget } from '@/components/ui/GlobalRequestWidget'
 import { MajorIncidentBanner } from '@/components/ui/MajorIncidentBanner'
+import { GlobalAnnounceBanner } from '@/components/ui/GlobalAnnounceBanner' // <-- NUEVA IMPORTACIÓN
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { supabase } from '@/lib/supabase'
 
+// Constantes de Mapeo
 const mainAreasCAE: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
 const exodusSubAreasCAE: ['exodus_mostradores', 'exodus_sucursales', 'exodus_sucursales_sic', 'exodus_erp_profesional', 'exodus_profesional_2013', 'exodus_embarques', 'exodus_epico'] = ['exodus_mostradores', 'exodus_sucursales', 'exodus_sucursales_sic', 'exodus_erp_profesional', 'exodus_profesional_2013', 'exodus_embarques', 'exodus_epico']
 const areasTI: OperationalArea[] = ['categoria_1', 'categoria_2', 'categoria_3', 'categoria_4', 'categoria_5', 'categoria_6']
@@ -23,21 +25,25 @@ export function Sidebar() {
   const { user, logout, isAdmin, isLoading } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
+  // Estados de declaración de falla masiva
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDescription, setReportDescription] = useState('')
   const [reportDept, setReportDept] = useState('TODOS')
   const [isReporting, setIsReporting] = useState(false)
   
+  // Referencias para captura de evidencia
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
 
   const isTI = user?.department === 'TI'
 
+  // Verificación de sesión
   useEffect(() => {
     if (!isLoading && !user) router.push('/login')
   }, [user, isLoading, router])
 
+  // Conversión de evidencia a Base64
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -47,6 +53,7 @@ export function Sidebar() {
     }
   }
 
+  // Ejecución de declaración de incidente
   const handleReportDowntime = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsReporting(true)
@@ -140,7 +147,6 @@ export function Sidebar() {
               )
             })}
 
-            {/* SECCIÓN REUBICADA: GOBERNANZA, COMUNICADOS E INCIDENTES */}
             <div className="pt-4 mt-4 border-t border-slate-200/50 space-y-2">
               <Link href="/dashboard/informacion" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/informacion') ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700')}>
                 <span className="text-lg">📢</span><span>Centro de Información</span>
@@ -177,9 +183,12 @@ export function Sidebar() {
         </div>
       </aside>
 
+      {/* COMPONENTES GLOBALES */}
       <GlobalRequestWidget />
       <MajorIncidentBanner />
+      <GlobalAnnounceBanner /> {/* Inyección de Difusión de Anuncios */}
 
+      {/* MODAL: Declaración de Incidente */}
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Declaración de Incidente Mayor">
         <form onSubmit={handleReportDowntime} className="space-y-5 py-2">
           <div className="bg-red-50 border border-red-100 p-4 rounded-xl text-xs text-red-700 font-medium">
@@ -189,7 +198,7 @@ export function Sidebar() {
           <Input label="Título de la Falla" required placeholder="Ej: Caída de Base de Datos Principal" value={reportTitle} onChange={(e: any) => setReportTitle(e.target.value)} />
           
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Observacion</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Síntomas</label>
             <textarea required rows={3} placeholder="Describa el impacto actual..." value={reportDescription} onChange={(e) => setReportDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none text-sm" />
           </div>
 
@@ -202,7 +211,6 @@ export function Sidebar() {
             </select>
           </div>
 
-          {/* Carga de captura fotográfica inicial optimizada */}
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">Captura de la Falla (Recomendado)</label>
             <div className="flex flex-col gap-3">
@@ -226,7 +234,7 @@ export function Sidebar() {
 
           <div className="flex gap-3 pt-4 border-t border-slate-100">
             <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsReportModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700" isLoading={isReporting}>Activar Alerta Roja</Button>
+            <Button type="submit" className="flex-1 bg-red-600 hover:bg-red-700 text-white" isLoading={isReporting}>Activar Alerta Roja</Button>
           </div>
         </form>
       </Modal>

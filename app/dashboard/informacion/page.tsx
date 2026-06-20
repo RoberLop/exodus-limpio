@@ -12,7 +12,7 @@ export default function InformacionPage() {
         </div>
       </div>
 
-      {/* Aquí mandamos llamar al tablero mágico de anuncios */}
+      {/* Renderizado de Tablero Estático */}
       <Anuncios />
     </div>
   )
