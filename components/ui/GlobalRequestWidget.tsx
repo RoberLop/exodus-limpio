@@ -11,10 +11,9 @@ import { Input } from '@/components/ui/Input'
 export function GlobalRequestWidget() {
   const { user, isSuperAdmin, isAuthenticated } = useAuth()
   
-  // Estado del Menú Speed Dial
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false)
   
-  // Estados de Autorizaciones
+  // Gestión de estado para Autorizaciones
   const [isAuthPanelOpen, setIsAuthPanelOpen] = useState(false)
   const [solicitudes, setSolicitudes] = useState<any[]>([])
   const [dismissedIds, setDismissedIds] = useState<number[]>([])
@@ -22,7 +21,7 @@ export function GlobalRequestWidget() {
   const [rejectingId, setRejectingId] = useState<number | null>(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  // Estados de Reporte de Caída Masiva
+  // Gestión de estado para Caídas Masivas
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDescription, setReportDescription] = useState('')
@@ -31,14 +30,13 @@ export function GlobalRequestWidget() {
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
 
-  // Referencias para arrastre del Panel de Autorizaciones
+  // Referencias para arrastre
   const widgetRef = useRef<HTMLDivElement>(null)
   const isDragging = useRef(false)
   const currentPos = useRef({ x: 0, y: 0 })
   const startPos = useRef({ x: 0, y: 0 })
   const dragBounds = useRef({ minX: 0, maxX: 0, minY: 0, maxY: 0 })
 
-  // Inicialización de persistencia local
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('exodus_dismissed_requests')
@@ -46,18 +44,13 @@ export function GlobalRequestWidget() {
     }
   }, [])
 
-  // Sincronización Realtime para Autorizaciones
   useEffect(() => {
     if (!isAuthenticated || !user) return
 
     const fetchRequests = async () => {
       let query = supabase.from('solicitudes_cambio').select('*').order('creado_at', { ascending: false })
-      
-      if (!isSuperAdmin) {
-        query = query.eq('solicitante', user.name)
-      } else {
-        query = query.eq('estado', 'PENDIENTE')
-      }
+      if (!isSuperAdmin) query = query.eq('solicitante', user.name)
+      else query = query.eq('estado', 'PENDIENTE')
 
       const { data } = await query
       if (data) setSolicitudes(data)
@@ -75,7 +68,7 @@ export function GlobalRequestWidget() {
     return () => { supabase.removeChannel(canal) }
   }, [user, isSuperAdmin, isAuthenticated])
 
-  // Lógica de Arrastre para el Panel de Autorizaciones
+  // Lógica de motor de arrastre
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true
     startPos.current = {
@@ -319,7 +312,7 @@ export function GlobalRequestWidget() {
         </div>
       </div>
 
-      {/* MENÚ SPEED DIAL */}
+      {/* MENÚ SPEED DIAL DESPLEGABLE */}
       <div 
         className={cn(
           "fixed bottom-24 right-6 flex flex-col gap-3 items-end z-[998] transition-all duration-300",
@@ -330,8 +323,8 @@ export function GlobalRequestWidget() {
           onClick={() => { setIsAuthPanelOpen(true); setIsSpeedDialOpen(false); }} 
           className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
         >
-          <span className="font-bold text-sm text-slate-700 group-hover:text-blue-600">Autorizaciones</span>
-          <div className="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-inner">
+          <span className="font-bold text-sm text-slate-700 group-hover:text-sky-500 transition-colors">Autorizaciones</span>
+          <div className="w-10 h-10 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-500 shadow-inner">
             🛡️
           </div>
         </button>
@@ -340,14 +333,14 @@ export function GlobalRequestWidget() {
           onClick={() => { setIsReportModalOpen(true); setIsSpeedDialOpen(false); }} 
           className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
         >
-          <span className="font-bold text-sm text-slate-700 group-hover:text-red-600">Reportar Caída</span>
+          <span className="font-bold text-sm text-slate-700 group-hover:text-red-600 transition-colors">Reportar Caída</span>
           <div className="w-10 h-10 rounded-full bg-red-50 border border-red-100 flex items-center justify-center text-red-600 shadow-inner">
             🚨
           </div>
         </button>
       </div>
 
-      {/* BOTÓN MAESTRO FLOTANTE (FAB) */}
+      {/* BOTÓN MAESTRO FLOTANTE (FAB) - DISEÑO GLASSMORPHISM CYAN */}
       <div className="fixed bottom-6 right-6 z-[1000]">
         <button
           onClick={() => {
@@ -355,8 +348,10 @@ export function GlobalRequestWidget() {
             else setIsSpeedDialOpen(!isSpeedDialOpen);
           }}
           className={cn(
-            "h-14 w-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 border border-white/20 backdrop-blur-xl",
-            isSpeedDialOpen || isAuthPanelOpen ? "bg-slate-800 text-white rotate-45 scale-110" : "bg-blue-600/90 text-white hover:bg-blue-500/90 hover:scale-105"
+            "h-14 w-14 rounded-full flex items-center justify-center shadow-xl transition-all duration-300 border backdrop-blur-md",
+            isSpeedDialOpen || isAuthPanelOpen 
+              ? "bg-slate-800/90 border-slate-600/50 text-white rotate-45 scale-110 shadow-slate-800/20" 
+              : "bg-sky-500/80 border-white/40 text-white hover:bg-sky-400/90 hover:scale-105 shadow-sky-500/30"
           )}
         >
           <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -388,7 +383,7 @@ export function GlobalRequestWidget() {
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">Alcance de la Alerta</label>
-            <select value={reportDept} onChange={(e) => setReportDept(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none">
+            <select value={reportDept} onChange={(e) => setReportDept(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:ring-2 focus:ring-slate-500/20">
               <option value="TODOS">Alerta Global (Toda la Empresa)</option>
               <option value="CAE">Exclusivo Soporte CAE</option>
               <option value="TI">Exclusivo Operaciones TI</option>
