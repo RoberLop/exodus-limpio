@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { cn, areaLabels, areaIcons } from '@/lib/utils'
 import { useAuth } from '@/context/AuthContext'
 import { OperationalArea } from '@/lib/types'
 import { GlobalRequestWidget } from '@/components/ui/GlobalRequestWidget'
-import { MajorIncidentBanner } from '@/components/ui/MajorIncidentBanner' // Componente nuevo
+import { MajorIncidentBanner } from '@/components/ui/MajorIncidentBanner'
 import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
@@ -23,12 +23,16 @@ export function Sidebar() {
   const { user, logout, isAdmin, isLoading } = useAuth()
   const [isExodusOpen, setIsExodusOpen] = useState(false)
 
-  // Gestión de estado para Reportar Caída
+  // Estados de declaración de falla masiva
   const [isReportModalOpen, setIsReportModalOpen] = useState(false)
   const [reportTitle, setReportTitle] = useState('')
   const [reportDescription, setReportDescription] = useState('')
   const [reportDept, setReportDept] = useState('TODOS')
   const [isReporting, setIsReporting] = useState(false)
+  
+  // Estado para la foto inicial del incidente
+  const imageInputRef = useRef<HTMLInputElement>(null)
+  const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
 
   const isTI = user?.department === 'TI'
 
@@ -36,6 +40,17 @@ export function Sidebar() {
     if (!isLoading && !user) router.push('/login')
   }, [user, isLoading, router])
 
+  // Procesamiento de captura de pantalla inicial
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => setScreenshotPreview(reader.result as string)
+      reader.readAsDataURL(file)
+    }
+  }
+
+  // Envío del incidente masivo a Supabase
   const handleReportDowntime = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsReporting(true)
@@ -44,7 +59,8 @@ export function Sidebar() {
       titulo: reportTitle,
       descripcion: reportDescription,
       departamento: reportDept,
-      creado_por: user?.name || 'Administrador'
+      creado_por: user?.name || 'Administrador',
+      screenshot_url: screenshotPreview // Guardado de la imagen base64 o link
     }])
 
     if (error) {
@@ -53,6 +69,7 @@ export function Sidebar() {
       setIsReportModalOpen(false)
       setReportTitle('')
       setReportDescription('')
+      setScreenshotPreview(null)
     }
     setIsReporting(false)
   }
@@ -127,22 +144,12 @@ export function Sidebar() {
               )
             })}
 
-            <div className="pt-4 mt-4 border-t border-slate-200/50">
+            {/* SECCIÓN REUBICADA: CENTRO DE INFORMACIÓN Y ACCIÓN DE CAÍDAS */}
+            <div className="pt-4 mt-4 border-t border-slate-200/50 space-y-2">
               <Link href="/dashboard/informacion" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/informacion') ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700')}>
                 <span className="text-lg">📢</span><span>Centro de Información</span>
               </Link>
-            </div>
 
-            {isAdmin && (
-              <>
-                <div className="pt-4"><p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Administración</p></div>
-                <Link href="/dashboard/admin" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/admin') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">⚙️</span><span>Panel Admin</span></Link>
-                <Link href="/dashboard/logs" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/logs') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">📖</span><span>Historial Logs</span></Link>
-              </>
-            )}
-
-            {/* BOTÓN OPERATIVO: DECLARAR CAÍDA MASIVA */}
-            <div className="pt-6">
               <button 
                 onClick={() => setIsReportModalOpen(true)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 font-bold text-xs rounded-xl border border-red-200 transition-colors shadow-sm"
@@ -154,6 +161,14 @@ export function Sidebar() {
                 Reportar Caída Masiva
               </button>
             </div>
+
+            {isAdmin && (
+              <>
+                <div className="pt-4"><p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Administración</p></div>
+                <Link href="/dashboard/admin" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/admin') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">⚙️</span><span>Panel Admin</span></Link>
+                <Link href="/dashboard/logs" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/logs') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">📖</span><span>Historial Logs</span></Link>
+              </>
+            )}
 
           </nav>
 
@@ -167,31 +182,42 @@ export function Sidebar() {
         </div>
       </aside>
 
-      {/* Componentes Globales Inyectados */}
       <GlobalRequestWidget />
       <MajorIncidentBanner />
 
-      {/* Modal Declaración de Incidente */}
+      {/* Modal: Apertura de Incidente Crítico */}
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Declaración de Incidente Mayor">
         <form onSubmit={handleReportDowntime} className="space-y-5 py-2">
           <div className="bg-red-50 border border-red-100 p-4 rounded-xl text-xs text-red-700 font-medium">
-            Al confirmar esta acción, se disparará una alerta global en las pantallas del departamento destino con un cronómetro de inactividad. Utilizar únicamente en casos de falla crítica de sistema.
+            Al confirmar esta acción, se disparará una alerta en las pantallas del departamento destino con un cronómetro de inactividad. Utilizar únicamente en casos críticos.
           </div>
           
           <Input label="Título de la Falla" required placeholder="Ej: Caída de Base de Datos Principal" value={reportTitle} onChange={(e: any) => setReportTitle(e.target.value)} />
           
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Síntomas</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Observaciones</label>
             <textarea required rows={3} placeholder="Describa el impacto actual..." value={reportDescription} onChange={(e) => setReportDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none text-sm" />
           </div>
 
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-1.5">Alcance de la Alerta</label>
-            <select value={reportDept} onChange={(e) => setReportDept(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:ring-2 focus:ring-slate-500/20">
+            <select value={reportDept} onChange={(e) => setReportDept(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none">
               <option value="TODOS">Alerta Global (Toda la Empresa)</option>
               <option value="CAE">Exclusivo Soporte CAE</option>
               <option value="TI">Exclusivo Operaciones TI</option>
             </select>
+          </div>
+
+          {/* Carga de captura fotográfica inicial */}
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Captura de la Falla (Opcional)</label>
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => imageInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200">
+                Subir Foto de Error
+              </button>
+              {screenshotPreview && <span className="text-xs text-emerald-600 font-bold">Imagen cargada correctamente</span>}
+            </div>
+            <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
           </div>
 
           <div className="flex gap-3 pt-4 border-t border-slate-100">
