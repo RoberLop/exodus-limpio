@@ -419,9 +419,13 @@ export function GlobalRequestWidget() {
               : "bg-sky-500/80 border-white/40 text-white hover:bg-sky-400/90 hover:scale-105 shadow-sky-500/30"
           )}
         >
-          {/* Icono: Cruz Geométrica Continua de Relleno Sólido */}
-          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 10.5h-5.5V4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v6H4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h6v6c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
+          {/* Icono de Arquitectura Modular (Tech Core) */}
+          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+            <rect x="10" y="3" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="10" y="17" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="3" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="17" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+            <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
           </svg>
           
           {!isSpeedDialOpen && !isAuthPanelOpen && notificationCount > 0 && (
