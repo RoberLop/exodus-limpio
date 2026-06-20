@@ -68,7 +68,6 @@ export function GlobalRequestWidget() {
     return () => { supabase.removeChannel(canal) }
   }, [user, isSuperAdmin, isAuthenticated])
 
-  // Lógica de motor de arrastre
   const handleMouseDown = (e: React.MouseEvent) => {
     isDragging.current = true
     startPos.current = {
@@ -129,7 +128,6 @@ export function GlobalRequestWidget() {
     }
   }, [])
 
-  // Operaciones de Autorización
   const handleAprobar = async (solicitud: any) => {
     setProcessingId(solicitud.id)
     try {
@@ -190,7 +188,6 @@ export function GlobalRequestWidget() {
     localStorage.setItem('exodus_dismissed_requests', JSON.stringify(newDismissed))
   }
 
-  // Operaciones de Caída Masiva
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -225,8 +222,16 @@ export function GlobalRequestWidget() {
 
   if (!isAuthenticated || !user) return null
 
+  // 1. Filtrado para renderizar la lista (Se muestran todos los no ocultados)
   const displayRequests = solicitudes.filter(s => !dismissedIds.includes(s.id))
-  const totalRelevant = displayRequests.length
+  
+  // 2. Lógica inteligente de notificaciones (Globo rojo y resplandor)
+  const notificationCount = displayRequests.filter(s => {
+    // Si es Admin, el globo rojo sale solo si hay Pendientes
+    if (isSuperAdmin) return s.estado === 'PENDIENTE'
+    // Si es Usuario normal, el globo rojo sale solo si ya le respondieron (No pendientes)
+    return s.estado !== 'PENDIENTE'
+  }).length
 
   return (
     <>
@@ -319,13 +324,31 @@ export function GlobalRequestWidget() {
           isSpeedDialOpen ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-4 scale-95 pointer-events-none"
         )}
       >
+        {/* BOTÓN AUTORIZACIONES CON GLOW INTELIGENTE */}
         <button 
           onClick={() => { setIsAuthPanelOpen(true); setIsSpeedDialOpen(false); }} 
-          className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
+          className={cn(
+            "flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border rounded-full hover:scale-105 transition-all text-left group relative",
+            notificationCount > 0 
+              ? "border-sky-300 shadow-lg shadow-sky-500/30" 
+              : "border-slate-200/60 shadow-xl shadow-slate-200/50 hover:bg-slate-50"
+          )}
         >
           <span className="font-bold text-sm text-slate-700 group-hover:text-sky-500 transition-colors">Autorizaciones</span>
-          <div className="w-10 h-10 rounded-full bg-sky-50 border border-sky-100 flex items-center justify-center text-sky-500 shadow-inner">
+          <div className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center transition-all relative",
+            notificationCount > 0 
+              ? "bg-sky-100 border border-sky-300 text-sky-600 shadow-[0_0_15px_rgba(14,165,233,0.5)]" 
+              : "bg-sky-50 border border-sky-100 text-sky-500 shadow-inner"
+          )}>
             🛡️
+            {/* Puntito indicador en el menú desplegable */}
+            {notificationCount > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-white"></span>
+              </span>
+            )}
           </div>
         </button>
         
@@ -354,21 +377,17 @@ export function GlobalRequestWidget() {
               : "bg-sky-500/80 border-white/40 text-white hover:bg-sky-400/90 hover:scale-105 shadow-sky-500/30"
           )}
         >
-          {/* Icono de Arquitectura Modular (Tech Core) */}
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <rect x="10" y="3" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="10" y="17" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="3" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="17" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+          {/* Icono: Cruz Geométrica Continua de Relleno Sólido */}
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 10.5h-5.5V4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v6H4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h6v6c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
           </svg>
           
           {/* Insignia de Notificación */}
-          {!isSpeedDialOpen && !isAuthPanelOpen && totalRelevant > 0 && (
+          {!isSpeedDialOpen && !isAuthPanelOpen && notificationCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
               <span className="relative inline-flex rounded-full h-4 w-4 bg-red-500 border border-white text-[9px] font-bold text-white items-center justify-center">
-                {totalRelevant > 9 ? '9+' : totalRelevant}
+                {notificationCount > 9 ? '9+' : notificationCount}
               </span>
             </span>
           )}
