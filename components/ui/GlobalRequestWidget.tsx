@@ -9,7 +9,8 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 export function GlobalRequestWidget() {
-  const { user, isSuperAdmin, isAuthenticated } = useAuth()
+  // Añadimos isAdmin a la desestructuración
+  const { user, isAdmin, isSuperAdmin, isAuthenticated } = useAuth()
   
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false)
   
@@ -29,6 +30,14 @@ export function GlobalRequestWidget() {
   const [isReporting, setIsReporting] = useState(false)
   const imageInputRef = useRef<HTMLInputElement>(null)
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null)
+
+  // NUEVO: Gestión de estado para Creación Rápida de Anuncios
+  const [isAnnounceModalOpen, setIsAnnounceModalOpen] = useState(false)
+  const [announceTitle, setAnnounceTitle] = useState('')
+  const [announceMessage, setAnnounceMessage] = useState('')
+  const [announceDept, setAnnounceDept] = useState('TODOS')
+  const [announceImportance, setAnnounceImportance] = useState('Normal')
+  const [isPublishing, setIsPublishing] = useState(false)
 
   // Referencias para arrastre
   const widgetRef = useRef<HTMLDivElement>(null)
@@ -128,6 +137,7 @@ export function GlobalRequestWidget() {
     }
   }, [])
 
+  // Autorizaciones
   const handleAprobar = async (solicitud: any) => {
     setProcessingId(solicitud.id)
     try {
@@ -188,6 +198,7 @@ export function GlobalRequestWidget() {
     localStorage.setItem('exodus_dismissed_requests', JSON.stringify(newDismissed))
   }
 
+  // Caídas Masivas
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -220,22 +231,42 @@ export function GlobalRequestWidget() {
     setIsReporting(false)
   }
 
+  // NUEVO: Envío rápido de Anuncios
+  const handleCreateAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsPublishing(true)
+
+    const { error } = await supabase.from('anuncios').insert([{
+      titulo: announceTitle,
+      mensaje: announceMessage,
+      departamento: announceDept,
+      importancia: announceImportance,
+      creado_por: user?.name || 'Administrador'
+    }])
+
+    if (error) {
+      alert('Error al publicar el anuncio: ' + error.message)
+    } else {
+      setIsAnnounceModalOpen(false)
+      setAnnounceTitle('')
+      setAnnounceMessage('')
+      setAnnounceImportance('Normal')
+    }
+    setIsPublishing(false)
+  }
+
   if (!isAuthenticated || !user) return null
 
-  // 1. Filtrado para renderizar la lista (Se muestran todos los no ocultados)
   const displayRequests = solicitudes.filter(s => !dismissedIds.includes(s.id))
   
-  // 2. Lógica inteligente de notificaciones (Globo rojo y resplandor)
   const notificationCount = displayRequests.filter(s => {
-    // Si es Admin, el globo rojo sale solo si hay Pendientes
     if (isSuperAdmin) return s.estado === 'PENDIENTE'
-    // Si es Usuario normal, el globo rojo sale solo si ya le respondieron (No pendientes)
     return s.estado !== 'PENDIENTE'
   }).length
 
   return (
     <>
-      {/* PANEL FLOTANTE DE AUTORIZACIONES (Arrastrable) */}
+      {/* PANEL FLOTANTE DE AUTORIZACIONES */}
       <div 
         ref={widgetRef}
         className={cn(
@@ -324,7 +355,19 @@ export function GlobalRequestWidget() {
           isSpeedDialOpen ? "opacity-100 translate-y-0 scale-100 pointer-events-auto" : "opacity-0 translate-y-4 scale-95 pointer-events-none"
         )}
       >
-        {/* BOTÓN AUTORIZACIONES CON GLOW INTELIGENTE */}
+        {/* NUEVO BOTÓN: Solo visible si el usuario es un administrador */}
+        {isAdmin && (
+          <button 
+            onClick={() => { setIsAnnounceModalOpen(true); setIsSpeedDialOpen(false); }} 
+            className="flex items-center gap-3 pl-5 pr-2 py-2 bg-white/90 backdrop-blur-xl border border-slate-200/60 shadow-xl shadow-slate-200/50 rounded-full hover:bg-slate-50 hover:scale-105 transition-all text-left group"
+          >
+            <span className="font-bold text-sm text-slate-700 group-hover:text-cyan-600 transition-colors">Publicar Anuncio</span>
+            <div className="w-10 h-10 rounded-full bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600 shadow-inner">
+              📢
+            </div>
+          </button>
+        )}
+
         <button 
           onClick={() => { setIsAuthPanelOpen(true); setIsSpeedDialOpen(false); }} 
           className={cn(
@@ -342,7 +385,6 @@ export function GlobalRequestWidget() {
               : "bg-sky-50 border border-sky-100 text-sky-500 shadow-inner"
           )}>
             🛡️
-            {/* Puntito indicador en el menú desplegable */}
             {notificationCount > 0 && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -363,7 +405,7 @@ export function GlobalRequestWidget() {
         </button>
       </div>
 
-      {/* BOTÓN MAESTRO FLOTANTE (FAB) - DISEÑO GLASSMORPHISM CYAN */}
+      {/* BOTÓN MAESTRO FLOTANTE (FAB) */}
       <div className="fixed bottom-6 right-6 z-[1000]">
         <button
           onClick={() => {
@@ -377,16 +419,11 @@ export function GlobalRequestWidget() {
               : "bg-sky-500/80 border-white/40 text-white hover:bg-sky-400/90 hover:scale-105 shadow-sky-500/30"
           )}
         >
-          {/* Icono de Arquitectura Modular (Tech Core) */}
-          <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-            <rect x="10" y="3" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="10" y="17" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="3" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="17" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
-            <rect x="10" y="10" width="4" height="4" rx="1" fill="currentColor" className="transition-all" />
+          {/* Icono: Cruz Geométrica Continua de Relleno Sólido */}
+          <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M19 10.5h-5.5V4.5c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v6H4.5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5h6v6c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-5.5H19c.83 0 1.5-.67 1.5-1.5s-.67-1.5-1.5-1.5z" />
           </svg>
           
-          {/* Insignia de Notificación */}
           {!isSpeedDialOpen && !isAuthPanelOpen && notificationCount > 0 && (
             <span className="absolute -top-1 -right-1 flex h-4 w-4">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
@@ -397,6 +434,45 @@ export function GlobalRequestWidget() {
           )}
         </button>
       </div>
+
+      {/* NUEVO MODAL: Formulario Rápido de Anuncios */}
+      <Modal isOpen={isAnnounceModalOpen} onClose={() => setIsAnnounceModalOpen(false)} title="Difundir Anuncio Oficial">
+        <form onSubmit={handleCreateAnnouncement} className="space-y-5 py-2">
+          <div className="bg-cyan-50 border border-cyan-100 p-4 rounded-xl text-xs text-cyan-800 font-medium">
+            El anuncio se publicará instantáneamente en el Centro de Información y aparecerá como una notificación global en las pantallas del departamento seleccionado.
+          </div>
+          
+          <Input label="Título del Anuncio" required placeholder="Ej: Mantenimiento Programado" value={announceTitle} onChange={(e: any) => setAnnounceTitle(e.target.value)} />
+          
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Mensaje del Comunicado</label>
+            <textarea required rows={4} placeholder="Escribe la información aquí..." value={announceMessage} onChange={(e) => setAnnounceMessage(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-cyan-500/20 outline-none text-sm" />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Alcance</label>
+              <select value={announceDept} onChange={(e) => setAnnounceDept(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:ring-2 focus:ring-cyan-500/20">
+                <option value="TODOS">Toda la Empresa</option>
+                <option value="CAE">Soporte CAE</option>
+                <option value="TI">Operaciones TI</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Prioridad</label>
+              <select value={announceImportance} onChange={(e) => setAnnounceImportance(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium outline-none focus:ring-2 focus:ring-cyan-500/20">
+                <option value="Normal">Informativa (Normal)</option>
+                <option value="Alta">Urgente (Alta)</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-slate-100">
+            <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsAnnounceModalOpen(false)}>Cancelar</Button>
+            <Button type="submit" className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white" isLoading={isPublishing}>Publicar Anuncio</Button>
+          </div>
+        </form>
+      </Modal>
 
       {/* MODAL DE CAÍDA MASIVA */}
       <Modal isOpen={isReportModalOpen} onClose={() => setIsReportModalOpen(false)} title="Declaración de Incidente Mayor">
