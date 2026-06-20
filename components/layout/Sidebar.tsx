@@ -98,11 +98,11 @@ export function Sidebar() {
 
             <div className="pt-4 mt-4 border-t border-slate-200/50 space-y-2">
               <Link href="/dashboard/informacion" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/informacion') ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700')}>
-                <span className="text-lg">📢</span><span>Centro de Información</span>
+                <span className="text-lg"> </span><span>Centro de Información</span>
               </Link>
 
               <Link href="/dashboard/caidas" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/caidas') ? 'bg-red-50 border border-red-100 text-red-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-red-50/50 hover:text-red-700')}>
-                <span className="text-lg">🚨</span><span>Historial de Caídas</span>
+                <span className="text-lg"> </span><span>Historial de Caídas</span>
               </Link>
             </div>
 
