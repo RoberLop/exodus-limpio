@@ -486,7 +486,7 @@ export function GlobalRequestWidget() {
           </div>
           <Input label="Título de la Falla" required placeholder="Ej: Caída de Base de Datos Principal" value={reportTitle} onChange={(e: any) => setReportTitle(e.target.value)} />
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Síntomas</label>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción y Observaciones</label>
             <textarea required rows={3} placeholder="Describa el impacto actual..." value={reportDescription} onChange={(e) => setReportDescription(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none text-sm" />
           </div>
           <div>

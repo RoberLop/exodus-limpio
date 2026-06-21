@@ -12,7 +12,7 @@ export function MajorIncidentBanner() {
   const [currentIndex, setCurrentIndex] = useState<number>(0)
   const [elapsedTime, setElapsedTime] = useState<string>('00m 00s')
 
-  // Estados de modales (Las ventanas que se habían borrado)
+  // Estados de modales
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false)
   const [isResolveModalOpen, setIsResolveModalOpen] = useState(false)
   const [steps, setSteps] = useState<string[]>([''])
@@ -151,8 +151,13 @@ export function MajorIncidentBanner() {
 
   return (
     <>
-      {/* Tinte global ambiental */}
-      <div className="fixed inset-0 bg-red-600/10 mix-blend-multiply pointer-events-none z-[9998]" />
+      {/* FONDO AMBIENTAL ANIMADO (Respeta UI, menús y tarjetas) */}
+      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
+        {/* Base roja pulsante que sube y baja de intensidad */}
+        <div className="absolute inset-0 bg-red-500/10 animate-pulse" style={{ animationDuration: '3s' }} />
+        {/* Gradiente superior para proyectar la luz desde el banner hacia abajo */}
+        <div className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-red-600/15 to-transparent opacity-90" />
+      </div>
 
       {/* Banner de Control Glassmorphism con Soporte de Carrusel */}
       <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-red-950/80 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-2xl shadow-red-900/20 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
@@ -164,7 +169,7 @@ export function MajorIncidentBanner() {
               <div className="flex items-center gap-1.5 bg-red-900/40 p-1 rounded-xl border border-red-500/20 shrink-0">
                 <button 
                   onClick={() => setCurrentIndex((prev) => (prev === 0 ? incidents.length - 1 : prev - 1))}
-                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors"
+                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                 </button>
@@ -173,7 +178,7 @@ export function MajorIncidentBanner() {
                 </span>
                 <button 
                   onClick={() => setCurrentIndex((prev) => (prev === incidents.length - 1 ? 0 : prev + 1))}
-                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors"
+                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                 </button>
@@ -190,7 +195,6 @@ export function MajorIncidentBanner() {
               </span>
               <div>
                 <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-red-200 transition-colors">
-                  {/* Fallback por si la base de datos trae un título vacío */}
                   {activeIncident.titulo || 'Incidente Crítico'}
                   <span className="text-[10px] font-bold bg-red-900/60 border border-red-500/30 px-2 py-0.5 rounded-md text-red-200">Detalles</span>
                 </h2>
@@ -241,7 +245,7 @@ export function MajorIncidentBanner() {
         </div>
       </Modal>
 
-      {/* MODAL 2: Formulario de Cierre (El que no aparecía) */}
+      {/* MODAL 2: Formulario de Cierre */}
       <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title="Documentar Solución de Caída">
         <form onSubmit={handleResolveIncident} className="space-y-5 py-2">
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
@@ -250,7 +254,7 @@ export function MajorIncidentBanner() {
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">Documento de Respaldo</label>
             <div className="flex items-center gap-4">
-              <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200">Adjuntar Archivo</button>
+              <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer">Adjuntar Archivo</button>
               {attachedFile && <span className="text-xs text-emerald-600 font-bold truncate max-w-xs">{attachedFile.name}</span>}
             </div>
             <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} className="hidden" />
@@ -269,7 +273,7 @@ export function MajorIncidentBanner() {
           </div>
           <div className="flex gap-3 pt-4 border-t border-slate-100">
             <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsResolveModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white" isLoading={isSubmitting}>Cerrar Incidente</Button>
+            <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer" isLoading={isSubmitting}>Cerrar Incidente</Button>
           </div>
         </form>
       </Modal>
@@ -298,7 +302,7 @@ export function MajorIncidentBanner() {
               </div>
             </div>
             {solvedIncidentPopup.archivo_url && (
-              <a href={solvedIncidentPopup.archivo_url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm">
+              <a href={solvedIncidentPopup.archivo_url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm cursor-pointer">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
                 Descargar Documentación de Cierre
               </a>
