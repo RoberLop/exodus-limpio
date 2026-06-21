@@ -147,142 +147,125 @@ export function MajorIncidentBanner() {
     setIsSubmitting(false)
   }
 
-  if (incidents.length === 0) return null
+  // REGLA DE ARQUITECTURA CORREGIDA:
+  // Si no hay incidentes activos Y no hay una notificación de solución pendiente, no renderizamos nada.
+  // Pero si hay una notificación pendiente, permitimos que el componente sobreviva para mostrar el Modal.
+  if (incidents.length === 0 && !solvedIncidentPopup) return null
 
   return (
     <>
-      {/* FONDO AMBIENTAL ANIMADO MEJORADO */}
-      <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
-        {/* Luz intensa exclusiva para teñir el Sidebar desde abajo (sin tocar el centro) */}
-        <div className="absolute top-0 left-0 bottom-0 w-[300px] bg-gradient-to-r from-red-600/30 to-transparent animate-pulse" style={{ animationDuration: '4s' }} />
-        
-        {/* Resplandor radial general muy suave y sin cortes bruscos */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent animate-pulse" style={{ animationDuration: '3s' }} />
-      </div>
-
-      {/* Banner de Control (Sólido para resaltar sobre cualquier fondo) */}
-      <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-gradient-to-r from-red-950 to-red-900 border border-red-500/50 rounded-2xl shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
-        <div className="px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 text-white">
-          
-          <div className="flex items-center gap-4 flex-1">
-            {/* Controles de navegación si hay más de una caída activa */}
-            {incidents.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-red-900/60 p-1 rounded-xl border border-red-500/30 shrink-0 shadow-inner">
-                <button 
-                  onClick={() => setCurrentIndex((prev) => (prev === 0 ? incidents.length - 1 : prev - 1))}
-                  className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
-                </button>
-                <span className="text-[10px] font-mono font-bold px-1 select-none">
-                  {currentIndex + 1}/{incidents.length}
-                </span>
-                <button 
-                  onClick={() => setCurrentIndex((prev) => (prev === incidents.length - 1 ? 0 : prev + 1))}
-                  className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
-                </button>
-              </div>
-            )}
-
-            <div 
-              className="flex items-center gap-3 cursor-pointer group flex-1"
-              onClick={() => setIsDetailModalOpen(true)}
-            >
-              <span className="flex h-3 w-3 relative shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-red-200"></span>
-              </span>
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-red-200 transition-colors">
-                  {activeIncident.titulo || 'Incidente Crítico'}
-                  <span className="text-[10px] font-bold bg-red-900/80 border border-red-500/50 px-2 py-0.5 rounded-md text-red-200 shadow-sm">Detalles</span>
-                </h2>
-                <p className="text-xs text-red-200/80 font-medium line-clamp-1 mt-0.5">{activeIncident.descripcion}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-6 shrink-0">
-            <div className="text-right">
-              <p className="text-[9px] font-bold text-red-400/90 uppercase tracking-widest">Inactividad Total</p>
-              <p className="text-2xl font-mono font-black tabular-nums tracking-tight text-white drop-shadow-md">{elapsedTime}</p>
-            </div>
-            <button 
-              onClick={() => setIsResolveModalOpen(true)}
-              className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white border border-red-400/80 font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all cursor-pointer hover:scale-105"
-            >
-              Solucionar
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* MODAL 1: Información de la Falla */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detalles del Incidente Mayor">
-        <div className="space-y-4 py-2">
-          <div className="bg-red-50 p-4 rounded-xl border border-red-100">
-            <span className="text-[10px] px-2 py-0.5 font-bold uppercase border bg-white text-red-600 border-red-200 rounded-md">
-              Afectación: {activeIncident?.departamento === 'TODOS' ? 'Global' : activeIncident?.departamento}
-            </span>
-            <h3 className="text-lg font-black text-red-900 mt-2">{activeIncident?.titulo || 'Incidente Crítico'}</h3>
-            <p className="text-sm text-red-800/80 mt-1 font-medium">{activeIncident?.descripcion}</p>
+      {/* Solo renderizamos la alerta roja y los modales operativos si la crisis sigue activa */}
+      {activeIncident && (
+        <>
+          {/* FONDO AMBIENTAL ANIMADO MEJORADO */}
+          <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+            <div className="absolute top-0 left-0 bottom-0 w-[300px] bg-gradient-to-r from-red-600/30 to-transparent animate-pulse" style={{ animationDuration: '4s' }} />
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent animate-pulse" style={{ animationDuration: '3s' }} />
           </div>
 
-          {activeIncident?.screenshot_url && (
-            <div className="mt-4">
-              <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Evidencia Fotográfica Inicial</label>
-              <div className="bg-slate-50 rounded-xl border border-slate-200 p-2 shadow-inner">
-                <img src={activeIncident.screenshot_url} alt="Captura del error" className="w-full rounded-lg max-h-72 object-contain" />
-              </div>
-            </div>
-          )}
+          {/* Banner de Control (Sólido para resaltar sobre cualquier fondo) */}
+          <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-gradient-to-r from-red-950 to-red-900 border border-red-500/50 rounded-2xl shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+            <div className="px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 text-white">
+              
+              <div className="flex items-center gap-4 flex-1">
+                {incidents.length > 1 && (
+                  <div className="flex items-center gap-1.5 bg-red-900/60 p-1 rounded-xl border border-red-500/30 shrink-0 shadow-inner">
+                    <button onClick={() => setCurrentIndex((prev) => (prev === 0 ? incidents.length - 1 : prev - 1))} className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    <span className="text-[10px] font-mono font-bold px-1 select-none">{currentIndex + 1}/{incidents.length}</span>
+                    <button onClick={() => setCurrentIndex((prev) => (prev === incidents.length - 1 ? 0 : prev + 1))} className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                  </div>
+                )}
 
-          <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 font-medium">
-            <span>Declarado por: <strong className="text-slate-800">{activeIncident?.creado_por}</strong></span>
-            <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>Cerrar panel</Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* MODAL 2: Formulario de Cierre */}
-      <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title="Documentar Solución de Caída">
-        <form onSubmit={handleResolveIncident} className="space-y-5 py-2">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
-            Al registrar la solución, el incidente se cerrará globalmente y se notificará el procedimiento a todo el personal.
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Evidencia de Solución (Documento o Captura)</label>
-            <div className="flex items-center gap-4">
-              <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer">
-                📎 Adjuntar Archivo o Imagen
-              </button>
-              {attachedFile && <span className="text-xs text-emerald-600 font-bold truncate max-w-xs">{attachedFile.name}</span>}
-            </div>
-            {/* AHORA ACEPTA IMÁGENES (.png, .jpg, .webp) Y DOCUMENTOS TÉCNICOS */}
-            <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} className="hidden" />
-          </div>
-          <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Procedimiento Aplicado</label>
-            <div className="space-y-2">
-              {steps.map((step, index) => (
-                <div key={index} className="flex gap-2">
-                  <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} required placeholder={`Paso técnico ${index + 1}`} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-sm" />
-                  {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="px-3 text-slate-400 hover:text-red-500 font-bold text-xs cursor-pointer">Quitar</button>}
+                <div className="flex items-center gap-3 cursor-pointer group flex-1" onClick={() => setIsDetailModalOpen(true)}>
+                  <span className="flex h-3 w-3 relative shrink-0">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 border border-red-200"></span>
+                  </span>
+                  <div>
+                    <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-red-200 transition-colors">
+                      {activeIncident.titulo || 'Incidente Crítico'}
+                      <span className="text-[10px] font-bold bg-red-900/80 border border-red-500/50 px-2 py-0.5 rounded-md text-red-200 shadow-sm">Detalles</span>
+                    </h2>
+                    <p className="text-xs text-red-200/80 font-medium line-clamp-1 mt-0.5">{activeIncident.descripcion}</p>
+                  </div>
                 </div>
-              ))}
+              </div>
+              
+              <div className="flex items-center gap-6 shrink-0">
+                <div className="text-right">
+                  <p className="text-[9px] font-bold text-red-400/90 uppercase tracking-widest">Inactividad Total</p>
+                  <p className="text-2xl font-mono font-black tabular-nums tracking-tight text-white drop-shadow-md">{elapsedTime}</p>
+                </div>
+                <button onClick={() => setIsResolveModalOpen(true)} className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white border border-red-400/80 font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all cursor-pointer hover:scale-105">
+                  Solucionar
+                </button>
+              </div>
             </div>
-            <button type="button" onClick={() => setSteps([...steps, ''])} className="mt-3 text-xs text-slate-600 hover:text-slate-900 font-bold bg-slate-100 px-3 py-1.5 rounded-lg cursor-pointer">+ Agregar Paso</button>
           </div>
-          <div className="flex gap-3 pt-4 border-t border-slate-100">
-            <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsResolveModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer" isLoading={isSubmitting}>Cerrar Incidente</Button>
-          </div>
-        </form>
-      </Modal>
 
-      {/* MODAL 3: Notificación Global de Solución */}
+          {/* MODAL 1: Información de la Falla */}
+          <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} title="Detalles del Incidente Mayor">
+            <div className="space-y-4 py-2">
+              <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                <span className="text-[10px] px-2 py-0.5 font-bold uppercase border bg-white text-red-600 border-red-200 rounded-md">Afectación: {activeIncident?.departamento === 'TODOS' ? 'Global' : activeIncident?.departamento}</span>
+                <h3 className="text-lg font-black text-red-900 mt-2">{activeIncident?.titulo || 'Incidente Crítico'}</h3>
+                <p className="text-sm text-red-800/80 mt-1 font-medium">{activeIncident?.descripcion}</p>
+              </div>
+              {activeIncident?.screenshot_url && (
+                <div className="mt-4">
+                  <label className="block text-xs font-bold text-slate-500 mb-2 uppercase tracking-wider">Evidencia Fotográfica Inicial</label>
+                  <div className="bg-slate-50 rounded-xl border border-slate-200 p-2 shadow-inner">
+                    <img src={activeIncident.screenshot_url} alt="Captura del error" className="w-full rounded-lg max-h-72 object-contain" />
+                  </div>
+                </div>
+              )}
+              <div className="pt-4 border-t border-slate-100 flex justify-between items-center text-xs text-slate-500 font-medium">
+                <span>Declarado por: <strong className="text-slate-800">{activeIncident?.creado_por}</strong></span>
+                <Button variant="secondary" onClick={() => setIsDetailModalOpen(false)}>Cerrar panel</Button>
+              </div>
+            </div>
+          </Modal>
+
+          {/* MODAL 2: Formulario de Cierre */}
+          <Modal isOpen={isResolveModalOpen} onClose={() => setIsResolveModalOpen(false)} title="Documentar Solución de Caída">
+            <form onSubmit={handleResolveIncident} className="space-y-5 py-2">
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs text-slate-600 font-medium">
+                Al registrar la solución, el incidente se cerrará globalmente y se notificará el procedimiento a todo el personal.
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Evidencia de Solución (Documento o Captura)</label>
+                <div className="flex items-center gap-4">
+                  <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer">📎 Adjuntar Archivo o Imagen</button>
+                  {attachedFile && <span className="text-xs text-emerald-600 font-bold truncate max-w-xs">{attachedFile.name}</span>}
+                </div>
+                <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} className="hidden" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Procedimiento Aplicado</label>
+                <div className="space-y-2">
+                  {steps.map((step, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} required placeholder={`Paso técnico ${index + 1}`} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-500/20 text-sm" />
+                      {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="px-3 text-slate-400 hover:text-red-500 font-bold text-xs cursor-pointer">Quitar</button>}
+                    </div>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setSteps([...steps, ''])} className="mt-3 text-xs text-slate-600 hover:text-slate-900 font-bold bg-slate-100 px-3 py-1.5 rounded-lg cursor-pointer">+ Agregar Paso</button>
+              </div>
+              <div className="flex gap-3 pt-4 border-t border-slate-100">
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsResolveModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer" isLoading={isSubmitting}>Cerrar Incidente</Button>
+              </div>
+            </form>
+          </Modal>
+        </>
+      )}
+
+      {/* MODAL 3: Notificación Global de Solución (Independiente para que sobreviva) */}
       <Modal isOpen={!!solvedIncidentPopup} onClose={() => setSolvedIncidentPopup(null)} title="Incidente Resuelto">
         {solvedIncidentPopup && (
           <div className="space-y-4 py-2">
@@ -308,7 +291,7 @@ export function MajorIncidentBanner() {
             {solvedIncidentPopup.archivo_url && (
               <a href={solvedIncidentPopup.archivo_url} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold hover:bg-slate-200 hover:text-slate-900 transition-all shadow-sm cursor-pointer">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                Descargar Documentación de Cierre
+                Ver Evidencia Adjunta
               </a>
             )}
             <div className="pt-2 flex justify-end">
