@@ -160,7 +160,7 @@ export function MajorIncidentBanner() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent animate-pulse" style={{ animationDuration: '3s' }} />
       </div>
 
-      {/* Banner de Control (Ahora es 100% Sólido para resaltar sobre cualquier fondo) */}
+      {/* Banner de Control (Sólido para resaltar sobre cualquier fondo) */}
       <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-gradient-to-r from-red-950 to-red-900 border border-red-500/50 rounded-2xl shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 text-white">
           
@@ -253,12 +253,15 @@ export function MajorIncidentBanner() {
             Al registrar la solución, el incidente se cerrará globalmente y se notificará el procedimiento a todo el personal.
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Documento de Respaldo</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">Evidencia de Solución (Documento o Captura)</label>
             <div className="flex items-center gap-4">
-              <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer">Adjuntar Archivo</button>
+              <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200 transition-colors border border-slate-200 cursor-pointer">
+                📎 Adjuntar Archivo o Imagen
+              </button>
               {attachedFile && <span className="text-xs text-emerald-600 font-bold truncate max-w-xs">{attachedFile.name}</span>}
             </div>
-            <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} className="hidden" />
+            {/* AHORA ACEPTA IMÁGENES (.png, .jpg, .webp) Y DOCUMENTOS TÉCNICOS */}
+            <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.zip,image/png,image/jpeg,image/jpg,image/webp" onChange={(e) => setAttachedFile(e.target.files?.[0] || null)} className="hidden" />
           </div>
           <div>
             <label className="block text-sm font-bold text-slate-700 mb-2">Procedimiento Aplicado</label>
