@@ -151,25 +151,26 @@ export function MajorIncidentBanner() {
 
   return (
     <>
-      {/* FONDO AMBIENTAL ANIMADO (Respeta UI, menús y tarjetas) */}
-      <div className="fixed inset-0 pointer-events-none z-[-1] overflow-hidden">
-        {/* Base roja pulsante que sube y baja de intensidad */}
-        <div className="absolute inset-0 bg-red-500/10 animate-pulse" style={{ animationDuration: '3s' }} />
-        {/* Gradiente superior para proyectar la luz desde el banner hacia abajo */}
-        <div className="absolute inset-x-0 top-0 h-3/4 bg-gradient-to-b from-red-600/15 to-transparent opacity-90" />
+      {/* FONDO AMBIENTAL ANIMADO MEJORADO */}
+      <div className="fixed inset-0 pointer-events-none z-[1] overflow-hidden">
+        {/* Luz intensa exclusiva para teñir el Sidebar desde abajo (sin tocar el centro) */}
+        <div className="absolute top-0 left-0 bottom-0 w-[300px] bg-gradient-to-r from-red-600/30 to-transparent animate-pulse" style={{ animationDuration: '4s' }} />
+        
+        {/* Resplandor radial general muy suave y sin cortes bruscos */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-red-500/10 via-transparent to-transparent animate-pulse" style={{ animationDuration: '3s' }} />
       </div>
 
-      {/* Banner de Control Glassmorphism con Soporte de Carrusel */}
-      <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-red-950/80 backdrop-blur-xl border border-red-500/30 rounded-2xl shadow-2xl shadow-red-900/20 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
+      {/* Banner de Control (Ahora es 100% Sólido para resaltar sobre cualquier fondo) */}
+      <div className="fixed top-6 right-6 left-[310px] z-[9999] bg-gradient-to-r from-red-950 to-red-900 border border-red-500/50 rounded-2xl shadow-[0_10px_40px_-10px_rgba(220,38,38,0.5)] overflow-hidden animate-in fade-in slide-in-from-top-4 duration-500">
         <div className="px-6 py-4 flex flex-col md:flex-row items-center justify-between gap-4 text-white">
           
           <div className="flex items-center gap-4 flex-1">
             {/* Controles de navegación si hay más de una caída activa */}
             {incidents.length > 1 && (
-              <div className="flex items-center gap-1.5 bg-red-900/40 p-1 rounded-xl border border-red-500/20 shrink-0">
+              <div className="flex items-center gap-1.5 bg-red-900/60 p-1 rounded-xl border border-red-500/30 shrink-0 shadow-inner">
                 <button 
                   onClick={() => setCurrentIndex((prev) => (prev === 0 ? incidents.length - 1 : prev - 1))}
-                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
                 </button>
@@ -178,7 +179,7 @@ export function MajorIncidentBanner() {
                 </span>
                 <button 
                   onClick={() => setCurrentIndex((prev) => (prev === incidents.length - 1 ? 0 : prev + 1))}
-                  className="p-1 hover:bg-red-800/50 rounded-lg transition-colors cursor-pointer"
+                  className="p-1 hover:bg-red-800 rounded-lg transition-colors cursor-pointer"
                 >
                   <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" /></svg>
                 </button>
@@ -196,9 +197,9 @@ export function MajorIncidentBanner() {
               <div>
                 <h2 className="text-sm font-black uppercase tracking-widest flex items-center gap-2 group-hover:text-red-200 transition-colors">
                   {activeIncident.titulo || 'Incidente Crítico'}
-                  <span className="text-[10px] font-bold bg-red-900/60 border border-red-500/30 px-2 py-0.5 rounded-md text-red-200">Detalles</span>
+                  <span className="text-[10px] font-bold bg-red-900/80 border border-red-500/50 px-2 py-0.5 rounded-md text-red-200 shadow-sm">Detalles</span>
                 </h2>
-                <p className="text-xs text-red-200/70 font-medium line-clamp-1 mt-0.5">{activeIncident.descripcion}</p>
+                <p className="text-xs text-red-200/80 font-medium line-clamp-1 mt-0.5">{activeIncident.descripcion}</p>
               </div>
             </div>
           </div>
@@ -206,11 +207,11 @@ export function MajorIncidentBanner() {
           <div className="flex items-center gap-6 shrink-0">
             <div className="text-right">
               <p className="text-[9px] font-bold text-red-400/90 uppercase tracking-widest">Inactividad Total</p>
-              <p className="text-2xl font-mono font-black tabular-nums tracking-tight text-red-50">{elapsedTime}</p>
+              <p className="text-2xl font-mono font-black tabular-nums tracking-tight text-white drop-shadow-md">{elapsedTime}</p>
             </div>
             <button 
               onClick={() => setIsResolveModalOpen(true)}
-              className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white border border-red-400/50 font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all cursor-pointer"
+              className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white border border-red-400/80 font-bold text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(220,38,38,0.4)] transition-all cursor-pointer hover:scale-105"
             >
               Solucionar
             </button>
