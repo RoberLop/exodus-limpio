@@ -120,8 +120,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         {erroresComunes.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4 text-slate-800">Comunes</h2>
-            {/* Cuadrícula estrictamente simétrica y uniforme */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresComunes.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
@@ -132,8 +131,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         {erroresNormales.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4 text-slate-800">Normales</h2>
-            {/* Cuadrícula estrictamente simétrica y uniforme */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresNormales.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
@@ -144,8 +142,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         {erroresRaros.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4 text-slate-800">Raros</h2>
-            {/* Cuadrícula estrictamente simétrica y uniforme */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresRaros.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
