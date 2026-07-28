@@ -110,7 +110,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
 
   return (
     <>
-      <div className="space-y-8">
+      <div className="space-y-10">
         {searchTerm && erroresFiltrados.length === 0 && (
           <div className="text-center py-12 text-slate-500 bg-white rounded-2xl border border-slate-200 shadow-sm">
             No se encontraron tickets que coincidan con "<strong>{searchTerm}</strong>".
@@ -119,7 +119,9 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         
         {erroresComunes.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Comunes</h2>
+            <h2 className="text-xl font-bold mb-5 text-slate-800 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]"></span> Comunes
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresComunes.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
@@ -130,7 +132,9 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         
         {erroresNormales.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Normales</h2>
+            <h2 className="text-xl font-bold mb-5 text-slate-800 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-slate-500 shadow-[0_0_10px_rgba(100,116,139,0.6)]"></span> Normales
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresNormales.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
@@ -141,7 +145,9 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
         
         {erroresRaros.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4 text-slate-800">Raros</h2>
+            <h2 className="text-xl font-bold mb-5 text-slate-800 flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)]"></span> Raros
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {erroresRaros.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
