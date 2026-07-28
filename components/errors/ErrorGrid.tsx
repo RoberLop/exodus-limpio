@@ -15,7 +15,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteObservation, setDeleteObservation] = useState('')
   const [actionError, setActionError] = useState('')
-  const [actionSuccess, setActionSuccess] = useState('') // <-- Para evitar el alert()
+  const [actionSuccess, setActionSuccess] = useState('')
 
   const [isQueryExpanded, setIsQueryExpanded] = useState(false)
   const [isCopied, setIsCopied] = useState(false)
@@ -83,7 +83,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
       if (error) {
         setActionError('Error al enviar la solicitud: ' + error.message)
       } else {
-        // En lugar del alert, le mostramos el mensaje directo y cerramos en 2s
         setActionSuccess('Solicitud enviada a la Bandeja de Autorizaciones con éxito.')
         setTimeout(() => {
           handleCloseModal()
@@ -117,30 +116,36 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             No se encontraron tickets que coincidan con "<strong>{searchTerm}</strong>".
           </div>
         )}
+        
         {erroresComunes.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Comunes</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Comunes</h2>
+            {/* Cuadrícula estrictamente simétrica y uniforme */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
               {erroresComunes.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
             </div>
           </div>
         )}
+        
         {erroresNormales.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Normales</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Normales</h2>
+            {/* Cuadrícula estrictamente simétrica y uniforme */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
               {erroresNormales.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
             </div>
           </div>
         )}
+        
         {erroresRaros.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold mb-4">Raros</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">Raros</h2>
+            {/* Cuadrícula estrictamente simétrica y uniforme */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr items-stretch">
               {erroresRaros.map((error: any) => (
                 <ErrorCard key={error.id} error={error} onClick={() => setSelectedError(error)} onDelete={onDelete} />
               ))}
