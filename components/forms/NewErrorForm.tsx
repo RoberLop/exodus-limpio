@@ -37,12 +37,10 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
   const [attachedFileName, setAttachedFileName] = useState<string | null>(initialData?.archivo_url ? 'Adjunto existente' : null)
 
-  // 🛡️ ARREGLO UX: Bloquear el scroll de la página de fondo
+  // Bloqueamos el scroll de la página de fondo para evitar el "Doble Scroll"
   useEffect(() => {
     document.body.style.overflow = 'hidden'
-    return () => {
-      document.body.style.overflow = 'unset'
-    }
+    return () => { document.body.style.overflow = 'unset' }
   }, [])
 
   const areaGroups = user?.department === 'TI'
@@ -158,111 +156,117 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     setIsLoading(false)
   }
 
-  // ESTRUCTURA ULTRA-COMPACTA SIN SCROLL
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-        
-        {/* COLUMNA IZQUIERDA */}
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Evidencia / Captura</label>
-            <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-lg transition-all cursor-pointer flex items-center justify-center overflow-hidden', preview ? 'border-sky-300 bg-slate-50 h-20' : 'border-slate-300 hover:bg-slate-50 h-14')}>
-              {preview ? (
-                <>
-                  <img src={preview} className="w-full h-full object-contain" />
-                  <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-1 right-1 bg-white/90 px-1.5 py-0.5 rounded text-red-500 text-[10px] font-bold">X</button>
-                </>
-              ) : <span className="text-[11px] font-medium text-slate-500">📎 Clic para subir imagen</span>}
+    // Limitamos la altura máxima del formulario para que no desborde la pantalla, obligando al scroll interno.
+    <form onSubmit={handleSubmit} className="flex flex-col w-full max-h-[75vh]">
+      
+      {/* CUERPO DEL FORMULARIO CON SCROLL INTERNO Y GRID RESPONSIVE */}
+      <div className="flex-1 overflow-y-auto pr-3 pb-4 custom-scrollbar">
+        {/* 1 columna en celular, 2 columnas en PC */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* COLUMNA IZQUIERDA */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Evidencia / Captura</label>
+              <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-xl transition-all cursor-pointer flex items-center justify-center overflow-hidden', preview ? 'border-sky-300 bg-slate-50 min-h-[160px]' : 'border-slate-300 hover:bg-slate-50 min-h-[120px]')}>
+                {preview ? (
+                  <>
+                    <img src={preview} className="w-full h-full object-contain" />
+                    <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-md text-red-500 text-xs font-black shadow-sm">X</button>
+                  </>
+                ) : <div className="text-center text-slate-500"><div className="text-2xl mb-1">📎</div><span className="text-xs font-medium">Clic para subir imagen</span></div>}
+              </div>
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
             </div>
-            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Título del Ticket</label>
+              <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Error de conexión en caja..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all" />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Prioridad</label>
+                <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
+                  {priorityOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Origen</label>
+                <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
+                  {originOptions.map(o => <option key={o} value={o}>{o}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Código Error</label>
+                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ej: 500" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all" />
+              </div>
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-1.5">Área Operativa</label>
+                <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
+                  {areaGroups.map((g, i) => (
+                    <optgroup key={i} label={g.label}>
+                      {g.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </optgroup>
+                  ))}
+                </select>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Título del Ticket</label>
-            <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Error de conexión..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400" />
-          </div>
+          {/* COLUMNA DERECHA */}
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción Breve</label>
+              <textarea rows={3} placeholder="Describe el problema a detalle..." className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all resize-none custom-scrollbar" value={description} onChange={(e) => setDescription(e.target.value)} />
+            </div>
 
-          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Prioridad</label>
-              <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
-                {priorityOptions.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
+              <label className="block text-sm font-bold text-slate-700 mb-1.5">Query SQL (Opcional)</label>
+              <textarea rows={3} placeholder="Pega tu .sql o script técnico..." className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-[#0f172a] text-emerald-400 shadow-inner transition-all resize-none custom-scrollbar" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
             </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Origen</label>
-              <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
-                {originOptions.map(o => <option key={o} value={o}>{o}</option>)}
-              </select>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Código Error</label>
-              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ej: 500" className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400" />
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-700 mb-1">Área Operativa</label>
-              <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
-                {areaGroups.map((g, i) => (
-                  <optgroup key={i} label={g.label}>
-                    {g.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </optgroup>
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+              <label className="block text-sm font-bold text-slate-700 mb-3">Pasos Técnicos</label>
+              <div className="space-y-2">
+                {steps.map((step, index) => (
+                  <div key={index} className="flex gap-2">
+                    <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-500/10 bg-white shadow-sm" />
+                    {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-slate-400 hover:text-red-500 text-sm font-black px-2 hover:bg-red-50 rounded-lg transition-colors">X</button>}
+                  </div>
                 ))}
-              </select>
+              </div>
+              {/* Sin límite de pasos */}
+              <button type="button" onClick={addStep} className="mt-3 text-xs font-bold text-sky-600 bg-sky-100/50 border border-sky-200 px-3 py-2 rounded-lg hover:bg-sky-100 transition-colors shadow-sm w-full">+ Añadir nuevo paso</button>
             </div>
-          </div>
-        </div>
 
-        {/* COLUMNA DERECHA */}
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Descripción Breve</label>
-            <textarea rows={1} placeholder="Cuándo ocurre..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 custom-scrollbar" value={description} onChange={(e) => setDescription(e.target.value)} />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Query SQL (Opcional)</label>
-            <textarea rows={1} placeholder="Pega tu .sql..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono outline-none focus:border-sky-400 custom-scrollbar" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-bold text-slate-700 mb-1">Pasos Técnicos</label>
-            <div className="space-y-1.5">
-              {steps.map((step, index) => (
-                <div key={index} className="flex gap-2">
-                  <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-md outline-none focus:border-sky-400" />
-                  {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-red-500 text-[10px] font-black px-1 hover:bg-red-50 rounded">X</button>}
-                </div>
-              ))}
+            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
+              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Documento Extra</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => documentInputRef.current?.click()} className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-100 font-bold transition-all">📎 Adjuntar Archivo</button>
+                {attachedFileName && <span className="text-xs text-sky-700 font-bold truncate max-w-[120px]">{attachedFileName}</span>}
+              </div>
+              <input ref={documentInputRef} type="file" onChange={handleDocumentChange} className="hidden" />
             </div>
-            {steps.length < 5 && <button type="button" onClick={addStep} className="mt-1.5 text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-1 rounded hover:bg-sky-100">+ Añadir paso</button>}
-          </div>
 
-          <div className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-lg">
-            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Documento Extra</span>
-            <div className="flex items-center gap-2">
-              <button type="button" onClick={() => documentInputRef.current?.click()} className="text-[10px] px-2 py-1 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-100 font-medium">📎 Adjuntar PDF/Excel</button>
-              {attachedFileName && <span className="text-[9px] text-sky-700 font-bold truncate max-w-[80px]">{attachedFileName}</span>}
-            </div>
-            <input ref={documentInputRef} type="file" onChange={handleDocumentChange} className="hidden" />
+            {isEditing && !isSuperAdmin && (
+              <div>
+                <label className="block text-sm font-bold text-red-600 mb-1.5">Justificación (Requerida)</label>
+                <textarea rows={2} placeholder="Explica por qué modificas este ticket..." className="w-full px-4 py-2.5 rounded-xl border border-red-200 text-sm outline-none focus:border-red-400 focus:ring-4 focus:ring-red-500/10 bg-red-50 shadow-inner transition-all resize-none" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
+              </div>
+            )}
           </div>
-
-          {isEditing && !isSuperAdmin && (
-            <div>
-              <label className="block text-[11px] font-bold text-red-600 mb-1">Justificación (Requerida)</label>
-              <input type="text" placeholder="Por qué modificas este ticket..." className="w-full px-3 py-1.5 rounded-lg border border-red-200 text-xs outline-none focus:border-red-400 bg-red-50" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
-            </div>
-          )}
         </div>
       </div>
 
-      {/* FOOTER */}
-      <div className="mt-5 pt-4 border-t border-slate-100 flex gap-3">
-        <Button type="button" variant="secondary" className="flex-1 py-2 text-xs" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" className="flex-1 py-2 text-xs bg-sky-600 hover:bg-sky-700 shadow-md" isLoading={isLoading}>
+      {/* FOOTER FIJO - Nunca se esconde, siempre a la mano */}
+      <div className="sticky bottom-0 bg-white/95 backdrop-blur-xl pt-4 pb-1 border-t border-slate-100 mt-2 flex gap-4 z-10">
+        <Button type="button" variant="secondary" className="flex-1 py-3 font-bold" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" className="flex-1 py-3 font-bold bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-500/30 text-white" isLoading={isLoading}>
           {isLoading ? 'Guardando...' : (isEditing ? (!isSuperAdmin ? 'Enviar a Autorización' : 'Guardar Cambios') : 'Crear ErrorCard')}
         </Button>
       </div>
