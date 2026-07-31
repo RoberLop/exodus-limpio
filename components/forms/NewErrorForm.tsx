@@ -1,9 +1,7 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/SelectMenu' 
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
@@ -21,42 +19,40 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
   const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
-  
   const [title, setTitle] = useState(initialData?.title || '')
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
-  
   const [editObservation, setEditObservation] = useState('')
 
   const defaultArea = user?.department === 'TI' ? 'categoria_1' : 'exodus_mostradores'
-  const [currentArea, setCurrentArea] = useState<string>(
-    initialData?.area || (area === 'global' ? defaultArea : area)
-  )
-  
+  const [currentArea, setCurrentArea] = useState<string>(initialData?.area || (area === 'global' ? defaultArea : area))
   const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
   const [origen, setOrigen] = useState(initialData?.origen || 'Usuario')
   const [solucionQuery, setSolucionQuery] = useState(initialData?.solucion_query || '')
 
   const isEditing = !!initialData?.id
   const fileInputRef = useRef<HTMLInputElement>(null)
-  
   const documentInputRef = useRef<HTMLInputElement>(null)
+  
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(
-    initialData?.archivo_url ? 'Documento adjunto existente' : null
-  )
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(initialData?.archivo_url ? 'Adjunto existente' : null)
+
+  // 🛡️ ARREGLO UX: Bloquear el scroll de la página de fondo
+  useEffect(() => {
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = 'unset'
+    }
+  }, [])
 
   const areaGroups = user?.department === 'TI'
     ? [
         {
           label: 'Operaciones TI',
           options: [
-            { value: 'categoria_1', label: 'Categoría 1' },
-            { value: 'categoria_2', label: 'Categoría 2' },
-            { value: 'categoria_3', label: 'Categoría 3' },
-            { value: 'categoria_4', label: 'Categoría 4' },
-            { value: 'categoria_5', label: 'Categoría 5' },
-            { value: 'categoria_6', label: 'Categoría 6' }
+            { value: 'categoria_1', label: 'Categoría 1' }, { value: 'categoria_2', label: 'Categoría 2' },
+            { value: 'categoria_3', label: 'Categoría 3' }, { value: 'categoria_4', label: 'Categoría 4' },
+            { value: 'categoria_5', label: 'Categoría 5' }, { value: 'categoria_6', label: 'Categoría 6' }
           ]
         }
       ]
@@ -64,51 +60,31 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         {
           label: 'Exodus',
           options: [
-            { value: 'exodus_mostradores', label: 'Exodus Mostradores' },
-            { value: 'exodus_sucursales', label: 'Exodus Sucursales' },
-            { value: 'exodus_sucursales_sic', label: 'Exodus Sucursales SIC' },
-            { value: 'exodus_erp_profesional', label: 'Exodus ERP Profesional' },
-            { value: 'exodus_profesional_2013', label: 'Exodus Profesional 2013' },
-            { value: 'exodus_embarques', label: 'Exodus Embarques' },
-            { value: 'exodus_epico', label: 'Exodus Épico' }
+            { value: 'exodus_mostradores', label: 'Mostradores' }, { value: 'exodus_sucursales', label: 'Sucursales' },
+            { value: 'exodus_sucursales_sic', label: 'Sucursales SIC' }, { value: 'exodus_erp_profesional', label: 'ERP Profesional' },
+            { value: 'exodus_profesional_2013', label: 'Profesional 2013' }, { value: 'exodus_embarques', label: 'Embarques' },
+            { value: 'exodus_epico', label: 'Épico' }
           ]
         },
         {
           label: 'Otras Áreas',
           options: [
-            { value: 'almacen', label: 'Almacén' },
-            { value: 'credito', label: 'Crédito' },
-            { value: 'pinpad', label: 'Pinpad' },
-            { value: 'embarques', label: 'Embarques' },
+            { value: 'almacen', label: 'Almacén' }, { value: 'credito', label: 'Crédito' },
+            { value: 'pinpad', label: 'Pinpad' }, { value: 'embarques', label: 'Embarques' },
             { value: 'movil', label: 'Móvil' }
           ]
         },
-        {
-          label: 'Información General',
-          options: [
-            { value: 'full_info', label: 'Full Información' }
-          ]
-        }
+        { label: 'General', options: [{ value: 'full_info', label: 'Full Información' }] }
       ]
 
-  const priorityOptions = [
-    { value: 'Común', label: 'Común' },
-    { value: 'Normal', label: 'Normal' },
-    { value: 'Raro', label: 'Raro' }
-  ]
-
-  const originOptions = [
-    { value: 'Usuario', label: 'Usuario' },
-    { value: 'Sistemas', label: 'Sistemas' }
-  ]
+  const priorityOptions = ['Común', 'Normal', 'Raro']
+  const originOptions = ['Usuario', 'Sistemas']
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
-      reader.onloadend = () => {
-        setPreview(reader.result as string)
-      }
+      reader.onloadend = () => setPreview(reader.result as string)
       reader.readAsDataURL(file)
     }
   }
@@ -128,200 +104,166 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     setSteps(newSteps)
   }
   const removeStep = (index: number) => {
-    if (steps.length > 1) {
-      setSteps(steps.filter((_, i) => i !== index))
-    }
+    if (steps.length > 1) setSteps(steps.filter((_, i) => i !== index))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
     if (isEditing && !isSuperAdmin && !editObservation.trim()) {
-      alert('Debes ingresar una justificación para solicitar la edición de este ticket.')
+      alert('Debes ingresar una justificación para editar.')
       return
     }
 
     setIsLoading(true)
-    
     let finalArchivoUrl = initialData?.archivo_url || null
 
     if (attachedFile) {
-      const fileExt = attachedFile.name.split('.').pop()
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
-      
-      const { error: uploadError } = await supabase.storage
-        .from('adjuntos')
-        .upload(fileName, attachedFile)
-
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${attachedFile.name.split('.').pop()}`
+      const { error: uploadError } = await supabase.storage.from('adjuntos').upload(fileName, attachedFile)
       if (uploadError) {
-        console.error('Error al subir documento:', uploadError)
         alert('Error al subir el documento: ' + uploadError.message)
         setIsLoading(false)
         return
       }
-
-      const { data: urlData } = supabase.storage.from('adjuntos').getPublicUrl(fileName)
-      finalArchivoUrl = urlData.publicUrl
+      finalArchivoUrl = supabase.storage.from('adjuntos').getPublicUrl(fileName).data.publicUrl
     }
 
     const payload: any = {
-      title,
-      code: code || null,
-      description,
-      steps,
-      screenshot_url: preview,
-      area: currentArea, 
-      prioridad,
-      origen,
-      solucion_query: solucionQuery,
-      departamento: user?.department || 'CAE',
-      archivo_url: finalArchivoUrl
-    }
-
-    if (isEditing) {
-      payload.modificado_por = user?.name || 'Usuario Desconocido'
-    } else {
-      payload.creado_por = user?.name || 'Usuario Desconocido'
-      payload.modificado_por = null
+      title, code: code || null, description, steps, screenshot_url: preview,
+      area: currentArea, prioridad, origen, solucion_query: solucionQuery,
+      departamento: user?.department || 'CAE', archivo_url: finalArchivoUrl,
+      modificado_por: isEditing ? user?.name : null,
+      creado_por: isEditing ? initialData?.creado_por : user?.name
     }
 
     if (isEditing && !isSuperAdmin) {
       const { error } = await supabase.from('solicitudes_cambio').insert([{
-        solicitante: user?.name || 'Administrador',
-        tipo_solicitud: 'EDITAR_TICKET',
-        tabla_destino: 'errors',
-        registro_id: initialData.id.toString(),
-        observacion: editObservation,
-        informacion_cambio: payload
+        solicitante: user?.name, tipo_solicitud: 'EDITAR_TICKET', tabla_destino: 'errors',
+        registro_id: initialData.id.toString(), observacion: editObservation, informacion_cambio: payload
       }])
-
-      if (error) {
-        alert('Error al enviar la solicitud: ' + error.message)
-      } else {
-        alert('Tu solicitud de edición ha sido enviada a la Bandeja de Autorizaciones.')
+      if (!error) {
+        alert('Solicitud enviada a Autorizaciones.')
         onSuccess(null)
-      }
+      } else alert('Error: ' + error.message)
     } else {
-      let result;
-      if (isEditing) {
-        result = await supabase.from('errors').update(payload).eq('id', initialData.id).select()
-      } else {
-        result = await supabase.from('errors').insert([payload]).select()
-      }
+      const { data, error } = isEditing 
+        ? await supabase.from('errors').update(payload).eq('id', initialData.id).select()
+        : await supabase.from('errors').insert([payload]).select()
 
-      const { data, error } = result;
-
-      if (error) {
-        console.error('Error al guardar en Supabase:', error)
-        alert('Error al guardar: ' + error.message)
-      } else {
-        const accionLog = isEditing ? 'EDITADO' : 'CREADO';
-        await supabase.from('audit_logs').insert([{
-          accion: accionLog,
-          ticket_titulo: title,
-          usuario: user?.name || 'Desconocido',
-          departamento: user?.department || 'CAE'
-        }]);
-
+      if (!error) {
+        await supabase.from('audit_logs').insert([{ accion: isEditing ? 'EDITADO' : 'CREADO', ticket_titulo: title, usuario: user?.name, departamento: user?.department }]);
         onSuccess(data)
-      }
+      } else alert('Error: ' + error.message)
     }
-    
     setIsLoading(false)
   }
 
+  // ESTRUCTURA ULTRA-COMPACTA SIN SCROLL
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col h-full max-h-[80vh]">
-      {/* Contenedor escroleable interno con Grid de 2 columnas */}
-      <div className="flex-1 overflow-y-auto pr-2 pb-4 custom-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* COLUMNA IZQUIERDA: Datos Generales */}
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Captura del error</label>
-              <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer hover:border-exodus-400 hover:bg-exodus-50/50', preview ? 'border-exodus-300 bg-exodus-50' : 'border-slate-200')}>
-                {preview ? (
-                  <div className="relative aspect-video">
-                    <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-slate-500 hover:text-slate-700 shadow-sm">X</button>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center">
-                    <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-slate-100 flex items-center justify-center">
-                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    </div>
-                    <p className="text-xs text-slate-600">Clic para subir imagen</p>
-                  </div>
-                )}
-                <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-              </div>
+    <form onSubmit={handleSubmit} className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+        
+        {/* COLUMNA IZQUIERDA */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">Evidencia / Captura</label>
+            <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-lg transition-all cursor-pointer flex items-center justify-center overflow-hidden', preview ? 'border-sky-300 bg-slate-50 h-20' : 'border-slate-300 hover:bg-slate-50 h-14')}>
+              {preview ? (
+                <>
+                  <img src={preview} className="w-full h-full object-contain" />
+                  <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-1 right-1 bg-white/90 px-1.5 py-0.5 rounded text-red-500 text-[10px] font-bold">X</button>
+                </>
+              ) : <span className="text-[11px] font-medium text-slate-500">📎 Clic para subir imagen</span>}
             </div>
-
-            <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
-            <Input label="Código de error" placeholder="Ej: ERR_500" value={code} onChange={(e: any) => setCode(e.target.value)} />
-            
-            <div className="grid grid-cols-2 gap-4">
-              <Select label="Prioridad" value={prioridad} onChange={setPrioridad} options={priorityOptions} />
-              <Select label="Origen" value={origen} onChange={setOrigen} options={originOptions} />
-            </div>
-            <Select label="Área Operativa" value={currentArea} onChange={setCurrentArea} groups={areaGroups} />
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </div>
 
-          {/* COLUMNA DERECHA: Detalles Técnicos y Evidencias */}
-          <div className="space-y-5">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Descripción breve</label>
-              <textarea rows={2} placeholder="Describe brevemente cuándo ocurre..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">Título del Ticket</label>
+            <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Error de conexión..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400" />
+          </div>
 
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Query de Solución (Opcional)</label>
-              <textarea rows={2} placeholder="Pega aquí tu query .sql o pasos..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Prioridad</label>
+              <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
+                {priorityOptions.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
             </div>
-
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Pasos de la solución</label>
-              <div className="space-y-2">
-                {steps.map((step, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-3 py-2 rounded-lg border border-slate-200 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" />
-                    {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-slate-400 hover:text-red-500 text-xs font-bold">Quitar</button>}
-                  </div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Origen</label>
+              <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
+                {originOptions.map(o => <option key={o} value={o}>{o}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Código Error</label>
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ej: 500" className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400" />
+            </div>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-700 mb-1">Área Operativa</label>
+              <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-2 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 bg-white">
+                {areaGroups.map((g, i) => (
+                  <optgroup key={i} label={g.label}>
+                    {g.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </optgroup>
                 ))}
-              </div>
-              <button type="button" onClick={addStep} className="mt-2 text-xs text-exodus-600 font-bold bg-exodus-50 px-3 py-1.5 rounded-lg">+ Añadir paso</button>
+              </select>
             </div>
-
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <label className="block text-xs font-bold text-slate-700 mb-2 uppercase tracking-wider">Documentos (PDF, Excel)</label>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => documentInputRef.current?.click()} className="px-3 py-1.5 bg-white text-slate-700 font-medium text-xs rounded-lg border border-slate-200 shadow-sm hover:bg-slate-100 transition-colors">📎 Adjuntar</button>
-                {attachedFileName && (
-                  <div className="flex items-center gap-2 px-2 py-1 bg-exodus-100/50 border border-exodus-200 rounded-md max-w-[150px]">
-                    <span className="text-[10px] text-exodus-700 font-bold truncate">{attachedFileName}</span>
-                    <button type="button" onClick={() => { setAttachedFile(null); setAttachedFileName(null); }} className="text-exodus-400 hover:text-red-500"><svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg></button>
-                  </div>
-                )}
-              </div>
-              <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" onChange={handleDocumentChange} className="hidden" />
-            </div>
-
-            {isEditing && !isSuperAdmin && (
-              <div className="pt-1">
-                <label className="block text-sm font-medium text-slate-700 mb-1.5">Justificación de la edición</label>
-                <textarea rows={1} placeholder="Por qué necesitas modificar esto..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 text-sm" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
-              </div>
-            )}
           </div>
+        </div>
+
+        {/* COLUMNA DERECHA */}
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">Descripción Breve</label>
+            <textarea rows={1} placeholder="Cuándo ocurre..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs outline-none focus:border-sky-400 custom-scrollbar" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">Query SQL (Opcional)</label>
+            <textarea rows={1} placeholder="Pega tu .sql..." className="w-full px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-mono outline-none focus:border-sky-400 custom-scrollbar" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
+          </div>
+
+          <div>
+            <label className="block text-[11px] font-bold text-slate-700 mb-1">Pasos Técnicos</label>
+            <div className="space-y-1.5">
+              {steps.map((step, index) => (
+                <div key={index} className="flex gap-2">
+                  <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-2 py-1.5 text-xs border border-slate-200 rounded-md outline-none focus:border-sky-400" />
+                  {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-red-500 text-[10px] font-black px-1 hover:bg-red-50 rounded">X</button>}
+                </div>
+              ))}
+            </div>
+            {steps.length < 5 && <button type="button" onClick={addStep} className="mt-1.5 text-[10px] font-bold text-sky-600 bg-sky-50 px-2 py-1 rounded hover:bg-sky-100">+ Añadir paso</button>}
+          </div>
+
+          <div className="flex items-center justify-between p-2 bg-slate-50 border border-slate-200 rounded-lg">
+            <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">Documento Extra</span>
+            <div className="flex items-center gap-2">
+              <button type="button" onClick={() => documentInputRef.current?.click()} className="text-[10px] px-2 py-1 bg-white border border-slate-300 rounded shadow-sm hover:bg-slate-100 font-medium">📎 Adjuntar PDF/Excel</button>
+              {attachedFileName && <span className="text-[9px] text-sky-700 font-bold truncate max-w-[80px]">{attachedFileName}</span>}
+            </div>
+            <input ref={documentInputRef} type="file" onChange={handleDocumentChange} className="hidden" />
+          </div>
+
+          {isEditing && !isSuperAdmin && (
+            <div>
+              <label className="block text-[11px] font-bold text-red-600 mb-1">Justificación (Requerida)</label>
+              <input type="text" placeholder="Por qué modificas este ticket..." className="w-full px-3 py-1.5 rounded-lg border border-red-200 text-xs outline-none focus:border-red-400 bg-red-50" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
+            </div>
+          )}
         </div>
       </div>
 
-      {/* FOOTER FIJO (Siempre visible, no hay que scrolear) */}
-      <div className="sticky bottom-0 bg-white/90 backdrop-blur-md pt-4 pb-2 border-t border-slate-100 mt-2 flex gap-3 z-10">
-        <Button type="button" variant="secondary" className="flex-1 py-3" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" className="flex-1 py-3 bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-500/30" isLoading={isLoading}>
-          {isLoading ? 'Procesando...' : (isEditing ? (!isSuperAdmin ? 'Enviar Autorización' : 'Guardar Cambios') : 'Crear ErrorCard')}
+      {/* FOOTER */}
+      <div className="mt-5 pt-4 border-t border-slate-100 flex gap-3">
+        <Button type="button" variant="secondary" className="flex-1 py-2 text-xs" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" className="flex-1 py-2 text-xs bg-sky-600 hover:bg-sky-700 shadow-md" isLoading={isLoading}>
+          {isLoading ? 'Guardando...' : (isEditing ? (!isSuperAdmin ? 'Enviar a Autorización' : 'Guardar Cambios') : 'Crear ErrorCard')}
         </Button>
       </div>
     </form>
