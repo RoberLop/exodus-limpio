@@ -1,133 +1,109 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
-import { cn, areaLabels, areaIcons } from '@/lib/utils'
+import { usePathname } from 'next/navigation'
 import { useAuth } from '@/context/AuthContext'
-import { OperationalArea } from '@/lib/types'
-import { GlobalRequestWidget } from '@/components/ui/GlobalRequestWidget'
-import { MajorIncidentBanner } from '@/components/ui/MajorIncidentBanner'
-import { GlobalAnnounceBanner } from '@/components/ui/GlobalAnnounceBanner'
-
-const mainAreasCAE: OperationalArea[] = ['almacen', 'credito', 'pinpad', 'embarques', 'movil']
-const exodusSubAreasCAE: ['exodus_mostradores', 'exodus_sucursales', 'exodus_sucursales_sic', 'exodus_erp_profesional', 'exodus_profesional_2013', 'exodus_embarques', 'exodus_epico'] = ['exodus_mostradores', 'exodus_sucursales', 'exodus_sucursales_sic', 'exodus_erp_profesional', 'exodus_profesional_2013', 'exodus_embarques', 'exodus_epico']
-const areasTI: OperationalArea[] = ['categoria_1', 'categoria_2', 'categoria_3', 'categoria_4', 'categoria_5', 'categoria_6']
+import { cn } from '@/lib/utils'
 
 export function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
-  const { user, logout, isAdmin, isLoading } = useAuth()
-  const [isExodusOpen, setIsExodusOpen] = useState(false)
+  const { user, isSuperAdmin, logout } = useAuth()
 
-  const isTI = user?.department === 'TI'
-
-  useEffect(() => {
-    if (!isLoading && !user) router.push('/login')
-  }, [user, isLoading, router])
+  // Menú simplificado: Solo vistas globales de alto impacto
+  const navItems = [
+    {
+      label: 'Soluciones Globales',
+      href: `/dashboard/${user?.department?.toLowerCase() || 'cae'}/global`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        </svg>
+      )
+    },
+    {
+      label: 'Tablero de Anuncios',
+      href: `/dashboard/${user?.department?.toLowerCase() || 'cae'}/anuncios`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.888pt-3.237 2.122A1.25 1.25 0 006 9v6a1.25 1.25 0 001.763 1.138L11 14.112V5.888zM18.5 8.75a4.25 4.25 0 010 6.5M16 10.5a1.75 1.75 0 010 3" />
+        </svg>
+      )
+    },
+    {
+      label: 'Gobernanza / Solicitudes',
+      href: `/dashboard/${user?.department?.toLowerCase() || 'cae'}/autorizaciones`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+        </svg>
+      )
+    }
+  ]
 
   return (
-    <>
-      <aside className="fixed left-0 top-0 bottom-0 w-72 p-4 z-40">
-        <div className="h-full glass rounded-3xl flex flex-col overflow-hidden relative border border-slate-200/50 shadow-sm">
-          
-          <div className="p-6 border-b border-slate-200/50">
-            <div className="flex items-center gap-3">
-              <div className={cn("w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg", isTI ? "bg-gradient-to-br from-indigo-500 to-indigo-700 shadow-indigo-500/30" : "bg-gradient-to-br from-exodus-500 to-exodus-700 shadow-exodus-500/30")}>
-                <span className="text-white font-bold text-lg">{isTI ? 'TI' : 'E'}</span>
-              </div>
-              <div>
-                <h1 className="text-lg font-semibold text-slate-900">Exodus</h1>
-                <p className="text-xs text-slate-500">{isTI ? 'Operaciones TI' : 'Soporte CAE'}</p>
-              </div>
-            </div>
-          </div>
+    <aside className="fixed left-0 top-0 bottom-0 w-[280px] bg-slate-900/80 backdrop-blur-xl border-r border-slate-800 text-white z-40 flex flex-col p-6">
+      
+      {/* Header del Sidebar */}
+      <div className="flex items-center gap-3 pb-6 border-b border-slate-800">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-emerald-400 flex items-center justify-center font-black text-slate-950 shadow-lg shadow-sky-500/20">
+          EX
+        </div>
+        <div>
+          <h1 className="font-black tracking-wider text-base">EXODUS</h1>
+          <p className="text-[10px] font-bold text-sky-400 uppercase tracking-widest">
+            {user?.department || 'Soporte CAE'}
+          </p>
+        </div>
+      </div>
 
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-            
-            <Link href="/dashboard/global" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 mb-4', pathname.includes('/dashboard/global') ? 'bg-slate-800 shadow-md text-white' : 'bg-white shadow-sm text-slate-700 hover:bg-slate-50 hover:text-slate-900')}>
-              <span className="text-lg">{areaIcons['global']}</span>
-              <span className="font-bold">{areaLabels['global']}</span>
+      {/* Navegación Principal Simplificada */}
+      <nav className="flex-1 mt-6 space-y-2">
+        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest px-3 mb-2">
+          Centro de Mando
+        </p>
+
+        {navItems.map((item) => {
+          const isActive = pathname === item.href
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold transition-all duration-200",
+                isActive 
+                  ? "bg-sky-500/20 text-sky-300 border border-sky-500/30 shadow-lg shadow-sky-500/10" 
+                  : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+              )}
+            >
+              {item.icon}
+              <span>{item.label}</span>
             </Link>
+          )
+        })}
+      </nav>
 
-            <p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Áreas Operativas</p>
-            
-            {!isTI && (
-              <>
-                <div>
-                  <button onClick={() => setIsExodusOpen(!isExodusOpen)} className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900">
-                    <div className="flex items-center gap-3"><span className="text-lg">{isExodusOpen ? '📂' : '📁'}</span><span>Exodus</span></div>
-                    <svg className={cn("w-4 h-4 text-slate-400 transition-transform duration-300", isExodusOpen ? "rotate-180" : "")} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  {isExodusOpen && (
-                    <div className="mt-1 mb-2 space-y-1 pl-4 border-l-2 border-slate-200/50 ml-5">
-                      {exodusSubAreasCAE.map((area) => {
-                        const isActive = pathname.includes(`/dashboard/${area}`)
-                        return (
-                          <Link key={area} href={`/dashboard/${area}`} className={cn('flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200 text-sm font-medium', isActive ? 'bg-white shadow-sm text-exodus-600' : 'text-slate-500 hover:bg-white/50 hover:text-slate-800')}>
-                            <span className="truncate">{areaLabels[area]}</span>
-                            {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500 flex-shrink-0" />}
-                          </Link>
-                        )
-                      })}
-                    </div>
-                  )}
-                </div>
-
-                {mainAreasCAE.map((area) => {
-                  const isActive = pathname.includes(`/dashboard/${area}`)
-                  return (
-                    <Link key={area} href={`/dashboard/${area}`} className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium', isActive ? 'bg-white shadow-md text-exodus-600' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900')}>
-                      <span className="text-lg">{areaIcons[area]}</span><span>{areaLabels[area]}</span>
-                      {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-exodus-500" />}
-                    </Link>
-                  )
-                })}
-              </>
-            )}
-
-            {isTI && areasTI.map((area) => {
-              const isActive = pathname.includes(`/dashboard/${area}`)
-              return (
-                <Link key={area} href={`/dashboard/${area}`} className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200 text-sm font-medium', isActive ? 'bg-white shadow-md text-indigo-600' : 'text-slate-600 hover:bg-white/50 hover:text-slate-900')}>
-                  <span className="text-lg">{areaIcons[area]}</span><span>{areaLabels[area]}</span>
-                  {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-indigo-500" />}
-                </Link>
-              )
-            })}
-
-            <div className="pt-4 mt-4 border-t border-slate-200/50 space-y-2">
-              <Link href="/dashboard/informacion" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/informacion') ? 'bg-cyan-50 border border-cyan-100 text-cyan-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-cyan-50/50 hover:text-cyan-700')}>
-                <span className="text-lg"> </span><span>Centro de Información</span>
-              </Link>
-
-              <Link href="/dashboard/caidas" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/caidas') ? 'bg-red-50 border border-red-100 text-red-700 font-bold' : 'text-sm font-medium text-slate-600 hover:bg-red-50/50 hover:text-red-700')}>
-                <span className="text-lg"> </span><span>Historial de Caídas</span>
-              </Link>
-            </div>
-
-            {isAdmin && (
-              <>
-                <div className="pt-4"><p className="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Administración</p></div>
-                <Link href="/dashboard/admin" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/admin') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">⚙️</span><span>Panel Admin</span></Link>
-                <Link href="/dashboard/logs" className={cn('flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all duration-200', pathname.includes('/dashboard/logs') ? 'bg-white shadow-md text-exodus-600' : 'text-sm font-medium text-slate-600 hover:bg-white/50 hover:text-slate-900')}><span className="text-lg">📖</span><span>Historial Logs</span></Link>
-              </>
-            )}
-          </nav>
-
-          <div className="p-4 border-t border-slate-200/50">
-            <div className="flex items-center gap-3 p-3 rounded-xl bg-white/50">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center"><span className="text-sm font-semibold text-slate-600">{user?.name ? user.name.charAt(0).toUpperCase() : ''}</span></div>
-              <div className="flex-1 min-w-0"><p className="text-sm font-medium text-slate-900 truncate">{user?.name}</p><p className="text-xs text-slate-500 truncate">{isAdmin ? 'Administrador' : 'Usuario'} • {isTI ? 'TI' : 'CAE'}</p></div>
-              <button onClick={logout} className="p-2 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-white/80 transition-colors" title="Cerrar sesión"><svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg></button>
-            </div>
+      {/* Perfil del Usuario y Logout */}
+      <div className="pt-6 border-t border-slate-800 space-y-3">
+        <div className="flex items-center gap-3 px-2">
+          <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-sky-400">
+            {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-slate-200 truncate">{user?.name || 'Usuario'}</p>
+            <p className="text-[10px] text-slate-500 truncate">{isSuperAdmin ? 'Super Admin' : 'Operador'}</p>
           </div>
         </div>
-      </aside>
 
-      <GlobalRequestWidget />
-      <MajorIncidentBanner />
-      <GlobalAnnounceBanner />
-    </>
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-xl text-xs font-bold transition-colors cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+          </svg>
+          Cerrar Sesión
+        </button>
+      </div>
+    </aside>
   )
 }
