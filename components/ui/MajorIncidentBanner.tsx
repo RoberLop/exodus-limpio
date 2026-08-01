@@ -66,9 +66,10 @@ export function MajorIncidentBanner() {
     const activeIncident = incidents[currentIndex]
     if (!activeIncident) return
 
-    const timer = setInterval(() => {
+    const calculateTime = () => {
       const startTime = new Date(activeIncident.creado_at).getTime()
       const now = new Date().getTime()
+      // Blindaje: Math.max evita números negativos si hay desincronización de servidores
       const diff = Math.max(0, now - startTime)
 
       const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -83,7 +84,13 @@ export function MajorIncidentBanner() {
       parts.push(`${seconds}s`)
 
       setElapsedTime(parts.join(' '))
-    }, 1000)
+    }
+
+    // 1. Ejecutar inmediatamente al abrir la alerta (Elimina el retraso inicial)
+    calculateTime()
+
+    // 2. Iniciar el bucle cada segundo
+    const timer = setInterval(calculateTime, 1000)
 
     return () => clearInterval(timer)
   }, [incidents, currentIndex])
