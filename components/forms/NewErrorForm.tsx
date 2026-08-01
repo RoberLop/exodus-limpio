@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/Button'
+import { Input } from '@/components/ui/Input'
+import { Select } from '@/components/ui/SelectMenu' 
 import { cn } from '@/lib/utils'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/context/AuthContext'
@@ -19,13 +21,17 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   
   const [preview, setPreview] = useState<string | null>(initialData?.screenshot_url || null)
   const [steps, setSteps] = useState<string[]>(initialData?.steps?.length ? initialData.steps : [''])
+  
   const [title, setTitle] = useState(initialData?.title || '')
   const [code, setCode] = useState(initialData?.code || '')
   const [description, setDescription] = useState(initialData?.description || '')
   const [editObservation, setEditObservation] = useState('')
 
   const defaultArea = user?.department === 'TI' ? 'categoria_1' : 'exodus_mostradores'
-  const [currentArea, setCurrentArea] = useState<string>(initialData?.area || (area === 'global' ? defaultArea : area))
+  const [currentArea, setCurrentArea] = useState<string>(
+    initialData?.area || (area === 'global' ? defaultArea : area)
+  )
+  
   const [prioridad, setPrioridad] = useState(initialData?.prioridad || 'Normal')
   const [origen, setOrigen] = useState(initialData?.origen || 'Usuario')
   const [solucionQuery, setSolucionQuery] = useState(initialData?.solucion_query || '')
@@ -33,11 +39,12 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   const isEditing = !!initialData?.id
   const fileInputRef = useRef<HTMLInputElement>(null)
   const documentInputRef = useRef<HTMLInputElement>(null)
-  
   const [attachedFile, setAttachedFile] = useState<File | null>(null)
-  const [attachedFileName, setAttachedFileName] = useState<string | null>(initialData?.archivo_url ? 'Adjunto existente' : null)
+  const [attachedFileName, setAttachedFileName] = useState<string | null>(
+    initialData?.archivo_url ? 'Documento adjunto existente' : null
+  )
 
-  // Bloqueamos el scroll de la página de fondo para evitar el "Doble Scroll"
+  // Bloquear scroll del fondo
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = 'unset' }
@@ -58,10 +65,10 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         {
           label: 'Exodus',
           options: [
-            { value: 'exodus_mostradores', label: 'Mostradores' }, { value: 'exodus_sucursales', label: 'Sucursales' },
-            { value: 'exodus_sucursales_sic', label: 'Sucursales SIC' }, { value: 'exodus_erp_profesional', label: 'ERP Profesional' },
-            { value: 'exodus_profesional_2013', label: 'Profesional 2013' }, { value: 'exodus_embarques', label: 'Embarques' },
-            { value: 'exodus_epico', label: 'Épico' }
+            { value: 'exodus_mostradores', label: 'Exodus Mostradores' }, { value: 'exodus_sucursales', label: 'Exodus Sucursales' },
+            { value: 'exodus_sucursales_sic', label: 'Exodus Sucursales SIC' }, { value: 'exodus_erp_profesional', label: 'Exodus ERP Profesional' },
+            { value: 'exodus_profesional_2013', label: 'Exodus Profesional 2013' }, { value: 'exodus_embarques', label: 'Exodus Embarques' },
+            { value: 'exodus_epico', label: 'Exodus Épico' }
           ]
         },
         {
@@ -72,11 +79,11 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
             { value: 'movil', label: 'Móvil' }
           ]
         },
-        { label: 'General', options: [{ value: 'full_info', label: 'Full Información' }] }
+        { label: 'Información General', options: [{ value: 'full_info', label: 'Full Información' }] }
       ]
 
-  const priorityOptions = ['Común', 'Normal', 'Raro']
-  const originOptions = ['Usuario', 'Sistemas']
+  const priorityOptions = [{ value: 'Común', label: 'Común' }, { value: 'Normal', label: 'Normal' }, { value: 'Raro', label: 'Raro' }]
+  const originOptions = [{ value: 'Usuario', label: 'Usuario' }, { value: 'Sistemas', label: 'Sistemas' }]
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -107,8 +114,9 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
     if (isEditing && !isSuperAdmin && !editObservation.trim()) {
-      alert('Debes ingresar una justificación para editar.')
+      alert('Debes ingresar una justificación para solicitar la edición de este ticket.')
       return
     }
 
@@ -116,7 +124,9 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     let finalArchivoUrl = initialData?.archivo_url || null
 
     if (attachedFile) {
-      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${attachedFile.name.split('.').pop()}`
+      const fileExt = attachedFile.name.split('.').pop()
+      const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`
+      
       const { error: uploadError } = await supabase.storage.from('adjuntos').upload(fileName, attachedFile)
       if (uploadError) {
         alert('Error al subir el documento: ' + uploadError.message)
@@ -136,138 +146,122 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
 
     if (isEditing && !isSuperAdmin) {
       const { error } = await supabase.from('solicitudes_cambio').insert([{
-        solicitante: user?.name, tipo_solicitud: 'EDITAR_TICKET', tabla_destino: 'errors',
-        registro_id: initialData.id.toString(), observacion: editObservation, informacion_cambio: payload
+        solicitante: user?.name || 'Administrador', tipo_solicitud: 'EDITAR_TICKET',
+        tabla_destino: 'errors', registro_id: initialData.id.toString(),
+        observacion: editObservation, informacion_cambio: payload
       }])
-      if (!error) {
-        alert('Solicitud enviada a Autorizaciones.')
+
+      if (error) alert('Error al enviar la solicitud: ' + error.message)
+      else {
+        alert('Tu solicitud de edición ha sido enviada a la Bandeja de Autorizaciones.')
         onSuccess(null)
-      } else alert('Error: ' + error.message)
+      }
     } else {
       const { data, error } = isEditing 
         ? await supabase.from('errors').update(payload).eq('id', initialData.id).select()
         : await supabase.from('errors').insert([payload]).select()
 
-      if (!error) {
-        await supabase.from('audit_logs').insert([{ accion: isEditing ? 'EDITADO' : 'CREADO', ticket_titulo: title, usuario: user?.name, departamento: user?.department }]);
+      if (error) alert('Error al guardar: ' + error.message)
+      else {
+        await supabase.from('audit_logs').insert([{
+          accion: isEditing ? 'EDITADO' : 'CREADO', ticket_titulo: title,
+          usuario: user?.name || 'Desconocido', departamento: user?.department || 'CAE'
+        }]);
         onSuccess(data)
-      } else alert('Error: ' + error.message)
+      }
     }
     setIsLoading(false)
   }
 
   return (
-    // Limitamos la altura máxima del formulario para que no desborde la pantalla, obligando al scroll interno.
-    <form onSubmit={handleSubmit} className="flex flex-col w-full max-h-[75vh]">
+    <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
       
-      {/* CUERPO DEL FORMULARIO CON SCROLL INTERNO Y GRID RESPONSIVE */}
-      <div className="flex-1 overflow-y-auto pr-3 pb-4 custom-scrollbar">
-        {/* 1 columna en celular, 2 columnas en PC */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          
-          {/* COLUMNA IZQUIERDA */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Evidencia / Captura</label>
-              <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-xl transition-all cursor-pointer flex items-center justify-center overflow-hidden', preview ? 'border-sky-300 bg-slate-50 min-h-[160px]' : 'border-slate-300 hover:bg-slate-50 min-h-[120px]')}>
-                {preview ? (
-                  <>
-                    <img src={preview} className="w-full h-full object-contain" />
-                    <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-2 right-2 bg-white/90 px-2 py-1 rounded-md text-red-500 text-xs font-black shadow-sm">X</button>
-                  </>
-                ) : <div className="text-center text-slate-500"><div className="text-2xl mb-1">📎</div><span className="text-xs font-medium">Clic para subir imagen</span></div>}
+      {/* CUERPO DEL FORMULARIO - SCROLL INTERNO, DISEÑO ORIGINAL ESPACIOSO */}
+      <div className="flex-1 overflow-y-auto px-1 pb-4 space-y-6 custom-scrollbar">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Captura del error</label>
+          <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer hover:border-exodus-400 hover:bg-exodus-50/50', preview ? 'border-exodus-300 bg-exodus-50' : 'border-slate-200')}>
+            {preview ? (
+              <div className="relative aspect-video">
+                <img src={preview} alt="Preview" className="w-full h-full object-contain rounded-xl" />
+                <button type="button" onClick={(e) => { e.stopPropagation(); setPreview(null); }} className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 text-slate-500 hover:text-slate-700 shadow-sm">X</button>
               </div>
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Título del Ticket</label>
-              <input required value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ej: Error de conexión en caja..." className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all" />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Prioridad</label>
-                <select value={prioridad} onChange={(e) => setPrioridad(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
-                  {priorityOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
+            ) : (
+              <div className="p-8 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-slate-100 flex items-center justify-center">
+                  <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                </div>
+                <p className="text-sm text-slate-600">Haz clic para subir una imagen</p>
               </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Origen</label>
-                <select value={origen} onChange={(e) => setOrigen(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
-                  {originOptions.map(o => <option key={o} value={o}>{o}</option>)}
-                </select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Código Error</label>
-                <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Ej: 500" className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all" />
-              </div>
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-1.5">Área Operativa</label>
-                <select value={currentArea} onChange={(e) => setCurrentArea(e.target.value)} className="w-full px-3 py-2.5 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 bg-slate-50 shadow-inner">
-                  {areaGroups.map((g, i) => (
-                    <optgroup key={i} label={g.label}>
-                      {g.options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-                    </optgroup>
-                  ))}
-                </select>
-              </div>
-            </div>
+            )}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           </div>
+        </div>
 
-          {/* COLUMNA DERECHA */}
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Descripción Breve</label>
-              <textarea rows={3} placeholder="Describe el problema a detalle..." className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-slate-50 shadow-inner transition-all resize-none custom-scrollbar" value={description} onChange={(e) => setDescription(e.target.value)} />
-            </div>
+        <Input label="Título del error" placeholder="Ej: Error de conexión" required value={title} onChange={(e: any) => setTitle(e.target.value)} />
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Select label="Área Operativa" value={currentArea} onChange={setCurrentArea} groups={areaGroups} />
+          <Select label="Prioridad" value={prioridad} onChange={setPrioridad} options={priorityOptions} />
+          <Select label="Origen" value={origen} onChange={setOrigen} options={originOptions} />
+        </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-1.5">Query SQL (Opcional)</label>
-              <textarea rows={3} placeholder="Pega tu .sql o script técnico..." className="w-full px-4 py-3 rounded-xl border border-slate-200 text-sm font-mono outline-none focus:border-sky-400 focus:ring-4 focus:ring-sky-500/10 bg-[#0f172a] text-emerald-400 shadow-inner transition-all resize-none custom-scrollbar" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
-            </div>
+        <Input label="Código de error" placeholder="Ej: ERR_500" value={code} onChange={(e: any) => setCode(e.target.value)} />
 
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-xl">
-              <label className="block text-sm font-bold text-slate-700 mb-3">Pasos Técnicos</label>
-              <div className="space-y-2">
-                {steps.map((step, index) => (
-                  <div key={index} className="flex gap-2">
-                    <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-500/10 bg-white shadow-sm" />
-                    {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-slate-400 hover:text-red-500 text-sm font-black px-2 hover:bg-red-50 rounded-lg transition-colors">X</button>}
-                  </div>
-                ))}
-              </div>
-              {/* Sin límite de pasos */}
-              <button type="button" onClick={addStep} className="mt-3 text-xs font-bold text-sky-600 bg-sky-100/50 border border-sky-200 px-3 py-2 rounded-lg hover:bg-sky-100 transition-colors shadow-sm w-full">+ Añadir nuevo paso</button>
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Descripción breve</label>
+          <textarea rows={2} placeholder="Describe brevemente cuándo ocurre..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 text-slate-900 focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </div>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 border border-slate-200 rounded-xl">
-              <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">Documento Extra</span>
-              <div className="flex items-center gap-2">
-                <button type="button" onClick={() => documentInputRef.current?.click()} className="text-xs px-3 py-1.5 bg-white border border-slate-300 rounded-lg shadow-sm hover:bg-slate-100 font-bold transition-all">📎 Adjuntar Archivo</button>
-                {attachedFileName && <span className="text-xs text-sky-700 font-bold truncate max-w-[120px]">{attachedFileName}</span>}
-              </div>
-              <input ref={documentInputRef} type="file" onChange={handleDocumentChange} className="hidden" />
-            </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Query de Solución (Opcional)</label>
+          <textarea rows={3} placeholder="Pega aquí tu query .sql o pasos técnicos..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white/80 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" value={solucionQuery} onChange={(e) => setSolucionQuery(e.target.value)} />
+        </div>
 
-            {isEditing && !isSuperAdmin && (
-              <div>
-                <label className="block text-sm font-bold text-red-600 mb-1.5">Justificación (Requerida)</label>
-                <textarea rows={2} placeholder="Explica por qué modificas este ticket..." className="w-full px-4 py-2.5 rounded-xl border border-red-200 text-sm outline-none focus:border-red-400 focus:ring-4 focus:ring-red-500/10 bg-red-50 shadow-inner transition-all resize-none" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1.5">Documentos Adjuntos (Excel, Word, PDF)</label>
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={() => documentInputRef.current?.click()} className="px-4 py-2 bg-slate-100 text-slate-700 font-medium text-sm rounded-xl hover:bg-slate-200 transition-colors flex items-center gap-2 border border-slate-200">
+              📎 Seleccionar archivo
+            </button>
+            {attachedFileName && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-exodus-50 border border-exodus-100 rounded-lg max-w-xs">
+                <span className="text-xs text-exodus-700 font-medium truncate">{attachedFileName}</span>
+                <button type="button" onClick={() => { setAttachedFile(null); setAttachedFileName(null); }} className="text-exodus-400 hover:text-red-500 transition-colors" title="Eliminar adjunto">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
             )}
           </div>
+          <input ref={documentInputRef} type="file" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip" onChange={handleDocumentChange} className="hidden" />
         </div>
+
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-2">Pasos de la solución</label>
+          <div className="space-y-3">
+            {steps.map((step, index) => (
+              <div key={index} className="flex gap-2 items-center">
+                <input type="text" value={step} onChange={(e) => updateStep(index, e.target.value)} placeholder={`Paso ${index + 1}`} className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 bg-white/80 text-sm focus:outline-none focus:ring-2 focus:ring-exodus-500/20" />
+                {steps.length > 1 && <button type="button" onClick={() => removeStep(index)} className="text-slate-400 hover:text-red-500 text-sm font-bold px-2">Quitar</button>}
+              </div>
+            ))}
+          </div>
+          <button type="button" onClick={addStep} className="mt-3 text-sm text-exodus-600 font-bold">+ Agregar paso</button>
+        </div>
+
+        {isEditing && !isSuperAdmin && (
+          <div className="pt-2">
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">Justificación de la edición</label>
+            <textarea rows={2} placeholder="Describe brevemente por qué necesitas modificar este ticket..." className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50 focus:outline-none focus:ring-2 focus:ring-exodus-500/20 transition-all text-sm" value={editObservation} onChange={(e) => setEditObservation(e.target.value)} />
+          </div>
+        )}
       </div>
 
-      {/* FOOTER FIJO - Nunca se esconde, siempre a la mano */}
-      <div className="sticky bottom-0 bg-white/95 backdrop-blur-xl pt-4 pb-1 border-t border-slate-100 mt-2 flex gap-4 z-10">
-        <Button type="button" variant="secondary" className="flex-1 py-3 font-bold" onClick={onCancel}>Cancelar</Button>
-        <Button type="submit" className="flex-1 py-3 font-bold bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-500/30 text-white" isLoading={isLoading}>
-          {isLoading ? 'Guardando...' : (isEditing ? (!isSuperAdmin ? 'Enviar a Autorización' : 'Guardar Cambios') : 'Crear ErrorCard')}
+      {/* FOOTER FIJO ABAJO */}
+      <div className="shrink-0 bg-white pt-4 mt-2 border-t border-slate-100 flex gap-3 sticky bottom-0 z-10 pb-2">
+        <Button type="button" variant="secondary" className="flex-1 py-3" onClick={onCancel}>Cancelar</Button>
+        <Button type="submit" className="flex-1 py-3 shadow-lg" isLoading={isLoading}>
+          {isLoading ? 'Procesando...' : (isEditing ? (!isSuperAdmin ? 'Enviar Solicitud' : 'Guardar Cambios') : 'Guardar error')}
         </Button>
       </div>
     </form>
