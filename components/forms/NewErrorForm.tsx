@@ -44,7 +44,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
     initialData?.archivo_url ? 'Documento adjunto existente' : null
   )
 
-  // Bloquear scroll del fondo
+  // Bloquear scroll de la página web de fondo
   useEffect(() => {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = 'unset' }
@@ -174,10 +174,11 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh]">
+    // LA MAGIA DE LA ALTURA: max-h-[65vh] garantiza que nunca se salga de la pantalla
+    <form onSubmit={handleSubmit} className="flex flex-col max-h-[65vh]">
       
-      {/* CUERPO DEL FORMULARIO - SCROLL INTERNO, DISEÑO ORIGINAL ESPACIOSO */}
-      <div className="flex-1 overflow-y-auto px-1 pb-4 space-y-6 custom-scrollbar">
+      {/* CUERPO DEL FORMULARIO - SCROLL INTERNO */}
+      <div className="flex-1 overflow-y-auto px-1 pr-3 pb-4 space-y-6 custom-scrollbar">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Captura del error</label>
           <div onClick={() => fileInputRef.current?.click()} className={cn('relative border-2 border-dashed rounded-2xl transition-all duration-200 cursor-pointer hover:border-exodus-400 hover:bg-exodus-50/50', preview ? 'border-exodus-300 bg-exodus-50' : 'border-slate-200')}>
@@ -246,6 +247,7 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
               </div>
             ))}
           </div>
+          {/* SIN LÍMITE DE PASOS */}
           <button type="button" onClick={addStep} className="mt-3 text-sm text-exodus-600 font-bold">+ Agregar paso</button>
         </div>
 
@@ -257,8 +259,8 @@ export function NewErrorForm({ area, initialData, onSuccess, onCancel }: NewErro
         )}
       </div>
 
-      {/* FOOTER FIJO ABAJO */}
-      <div className="shrink-0 bg-white pt-4 mt-2 border-t border-slate-100 flex gap-3 sticky bottom-0 z-10 pb-2">
+      {/* FOOTER FIJO ABAJO - No se corta */}
+      <div className="shrink-0 bg-white pt-4 mt-2 border-t border-slate-100 flex gap-3">
         <Button type="button" variant="secondary" className="flex-1 py-3" onClick={onCancel}>Cancelar</Button>
         <Button type="submit" className="flex-1 py-3 shadow-lg" isLoading={isLoading}>
           {isLoading ? 'Procesando...' : (isEditing ? (!isSuperAdmin ? 'Enviar Solicitud' : 'Guardar Cambios') : 'Guardar error')}
