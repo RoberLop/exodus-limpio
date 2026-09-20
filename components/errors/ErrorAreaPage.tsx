@@ -1,199 +1,119 @@
 'use client'
 
-import { useState } from 'react'
-import { ErrorCard } from './ErrorCard'
-import { Modal } from '@/components/ui/Modal'
-import { Button } from '@/components/ui/Button'
+import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { ErrorGrid } from '@/components/errors/ErrorGrid'
+import { Header } from '@/components/layout/Header'
+import { Modal } from '@/components/ui/Modal'
+import { NewErrorForm } from '@/components/forms/NewErrorForm'
 import { useAuth } from '@/context/AuthContext'
-import { areaLabels } from '@/lib/utils'
 
-export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
-  const [selectedError, setSelectedError] = useState<any | null>(null)
-  const [isConfirming, setIsConfirming] = useState(false)
+export function ErrorAreaPage({ areaName }: { areaName: string }) {
+  const { user } = useAuth()
+  const [errors, setErrors] = useState<any[]>([])
+  const [editingError, setEditingError] = useState<any | null>(null)
   
-  const [deleteObservation, setDeleteObservation] = useState('')
-  const [actionError, setActionError] = useState('')
-  const [actionSuccess, setActionSuccess] = useState('')
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const [isQueryExpanded, setIsQueryExpanded] = useState(false)
-  const [isCopied, setIsCopied] = useState(false)
+  const fetchErrors = async () => {
+    // Si por alguna razón el usuario aún no carga en pantalla, esperamos
+    if (!user?.department) return
 
-  const { user, isAdmin } = useAuth()
+    // 1. Preparamos la consulta base (traer todo ordenado por fecha)
+    let query = supabase
+      .from('errors')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .eq('departamento', user.department) // Solo trae los de su departamento
+    
+    // 2. Si NO estamos en la pestaña global, le aplicamos el filtro del área
+    if (areaName !== 'global') {
+      query = query.eq('area', areaName)
+    }
 
-  const erroresFiltrados = (errors || []).filter((e: any) => 
-    e.title?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.code?.toLowerCase().includes(searchTerm.toLowerCase())
-  )
-
-  const erroresComunes = erroresFiltrados.filter((e: any) => e.prioridad === 'Común')
-  const erroresNormales = erroresFiltrados.filter((e: any) => e.prioridad === 'Normal' || !e.prioridad)
-  const erroresRaros = erroresFiltrados.filter((e: any) => e.prioridad === 'Raro')
-
-  const formatFecha = (isoString: string) => {
-    if (!isoString) return ''
-    const fecha = new Date(isoString)
-    return fecha.toLocaleString('es-MX', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true
-    })
+    // 3. Ejecutamos la consulta
+    const { data } = await query
+    
+    if (data) {
+      setErrors(data.map(item => ({ ...item, screenshotUrl: item.screenshot_url })))
+    }
   }
 
-  const handleConfirmDelete = async () => {
-    setActionError('')
-    setActionSuccess('')
+  // --- LA MAGIA DEL TIEMPO REAL ---
+  useEffect(() => { 
+    fetchErrors() 
 
-    if (isAdmin) {
-      // Los administradores eliminan directamente sin contraseña (solo confirmación)
-      if (selectedError) {
-        await supabase.from('audit_logs').insert([{
-          accion: 'ELIMINADO',
-          detalle: `Se eliminó el error: ${selectedError.title}`,
-          usuario: user?.name || 'Administrador'
-        }])
-        
-        const { error } = await supabase.from('errors').delete().eq('id', selectedError.id)
-        if (!error) {
-          setIsConfirming(false)
-          setSelectedError(null)
-          if (onDelete) onDelete(selectedError.id)
-          setActionSuccess('Registro eliminado correctamente.')
-        } else {
-          setActionError('Error al eliminar en la base de datos.')
+    if (!user?.department) return
+
+    // Creamos el canal para escuchar la base de datos en vivo
+    const canalRealtime = supabase
+      .channel('cambios-en-errores')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Escucha inserts, updates y deletes
+          schema: 'public',
+          table: 'errors'
+        },
+        (payload) => {
+          console.log('¡Cambio detectado en tiempo real!', payload)
+          // Cuando alguien más cambie algo, recargamos la lista automáticamente
+          fetchErrors()
         }
-      }
+      )
+      .subscribe()
+
+    // Limpieza de memoria cuando el usuario cambie de pestaña
+    return () => {
+      supabase.removeChannel(canalRealtime)
+    }
+  }, [areaName, user?.department])
+
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase.from('errors').delete().eq('id', id)
+    if (error) {
+      alert("No se pudo eliminar el ticket: " + error.message)
     } else {
-      // Los miembros envían solicitud de autorización
-      if (!deleteObservation) {
-        setActionError('La justificación es obligatoria.')
-        return
-      }
-      if (selectedError) {
-        const { error } = await supabase.from('solicitudes_cambio').insert([{
-          solicitante: user?.name || 'Miembro',
-          departamento: user?.department || 'TODOS',
-          tipo_solicitud: 'ELIMINAR_TICKET',
-          tabla_destino: 'errors',
-          registro_id: selectedError.id.toString(),
-          observacion: deleteObservation,
-          informacion_cambio: selectedError
-        }])
-
-        if (!error) {
-          setIsConfirming(false)
-          setSelectedError(null)
-          setDeleteObservation('')
-          setActionSuccess('Solicitud de eliminación enviada a Gobernanza.')
-        } else {
-          setActionError('Error al enviar la solicitud.')
-        }
-      }
+      // Ya no es estrictamente necesario llamar a fetchErrors aquí, 
+      // porque el Realtime lo va a detectar y lo hará por nosotros, 
+      // pero dejarlo no hace daño para que sea instantáneo para ti.
+      fetchErrors()
     }
   }
 
   return (
-    <div className="space-y-8">
-      {actionSuccess && (
-        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm rounded-xl font-medium">
-          {actionSuccess}
-        </div>
-      )}
+    <div>
+      <Header 
+        area={areaName as any} 
+        errorCount={errors.length} 
+        onAddError={fetchErrors} 
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+      />
+      
+      <ErrorGrid 
+        errors={errors} 
+        onDelete={handleDelete} 
+        onEdit={(error: any) => setEditingError(error)} 
+        searchTerm={searchTerm}
+      />
 
-      {erroresComunes.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Comunes</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {erroresComunes.map((err: any) => (
-              <ErrorCard 
-                key={err.id} 
-                error={err} 
-                onDelete={(e: any) => { setSelectedError(e); setIsConfirming(true); setDeleteObservation(''); setActionError(''); }} 
-                onEdit={onEdit} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {erroresNormales.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Estándar</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {erroresNormales.map((err: any) => (
-              <ErrorCard 
-                key={err.id} 
-                error={err} 
-                onDelete={(e: any) => { setSelectedError(e); setIsConfirming(true); setDeleteObservation(''); setActionError(''); }} 
-                onEdit={onEdit} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {erroresRaros.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">Raros / Críticos</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {erroresRaros.map((err: any) => (
-              <ErrorCard 
-                key={err.id} 
-                error={err} 
-                onDelete={(e: any) => { setSelectedError(e); setIsConfirming(true); setDeleteObservation(''); setActionError(''); }} 
-                onEdit={onEdit} 
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {erroresFiltrados.length === 0 && (
-        <div className="text-center py-12 text-slate-400 text-sm">
-          No se encontraron registros que coincidan con la búsqueda.
-        </div>
-      )}
-
-      {/* Modal de Confirmación / Solicitud */}
-      <Modal isOpen={isConfirming} onClose={() => setIsConfirming(false)} title={isAdmin ? "Confirmar Eliminación" : "Solicitar Eliminación de Ticket"}>
-        <div className="space-y-4 py-2 text-left">
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600">
-            {isAdmin 
-              ? `¿Estás seguro de eliminar permanentemente el registro "${selectedError?.title}"? Esta acción no se puede deshacer.`
-              : `Vas a enviar una solicitud a Gobernanza para eliminar el registro "${selectedError?.title}".`}
-          </div>
-
-          {!isAdmin && (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Justificación del cambio *</label>
-              <textarea 
-                placeholder="Explica el motivo de la eliminación..." 
-                value={deleteObservation} 
-                onChange={(e) => { setDeleteObservation(e.target.value); setActionError(''); }} 
-                className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none text-sm" 
-                rows={3} 
-                autoFocus 
-              />
-            </div>
-          )}
-
-          {actionError && (
-            <p className="text-red-500 text-xs font-semibold text-center">{actionError}</p>
-          )}
-
-          <div className="flex gap-3 pt-2">
-            <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsConfirming(false)}>
-              Cancelar
-            </Button>
-            <Button type="button" className={`flex-1 ${isAdmin ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-slate-800 hover:bg-slate-900 text-white'}`} onClick={handleConfirmDelete}>
-              {isAdmin ? 'Eliminar Definitivo' : 'Enviar Solicitud'}
-            </Button>
-          </div>
-        </div>
+      <Modal 
+        isOpen={!!editingError} 
+        onClose={() => setEditingError(null)} 
+        title="Editar Ticket"
+      >
+        {editingError && (
+          <NewErrorForm 
+            area={areaName as any} 
+            initialData={editingError} 
+            onSuccess={() => {
+              setEditingError(null)
+              fetchErrors()
+            }}
+            onCancel={() => setEditingError(null)} 
+          />
+        )}
       </Modal>
     </div>
   )
