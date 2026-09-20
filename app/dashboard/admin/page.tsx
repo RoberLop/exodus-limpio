@@ -9,7 +9,7 @@ import { AdminUserForm } from '@/components/forms/AdminUserForm'
 import { AdminAnnounceForm } from '@/components/forms/AdminAnnounceForm'
 
 export default function AdminPage() {
-  const { isAdmin, isSuperAdmin, user } = useAuth()
+  const { isAdmin, user } = useAuth()
   
   const [activeTab, setActiveTab] = useState<'usuarios' | 'anuncios' | 'autorizaciones'>('usuarios')
 
@@ -29,7 +29,6 @@ export default function AdminPage() {
   
   const [isDeleteUserModalOpen, setIsDeleteUserModalOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<any | null>(null)
-  const [deletePassword, setDeletePassword] = useState('')
   const [deleteError, setDeleteError] = useState('')
   const [deleteObservation, setDeleteObservation] = useState('')
 
@@ -70,7 +69,7 @@ export default function AdminPage() {
 
       return () => { supabase.removeChannel(canalSolicitudes) }
     }
-  }, [isAdmin, isSuperAdmin, user])
+  }, [isAdmin, user])
 
   const fetchUsuarios = async () => {
     setIsLoadingUsers(true)
@@ -82,15 +81,18 @@ export default function AdminPage() {
   const executeDeleteUser = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (isSuperAdmin) {
-      if (deletePassword !== 'isAdmin02') { setDeleteError('Contraseña de seguridad incorrecta.'); return; }
+    if (isAdmin) {
+      // Los administradores eliminan directamente sin pedir contraseña
       const { error } = await supabase.from('usuarios').delete().eq('id', userToDelete.id)
       if (!error) { 
         setIsDeleteUserModalOpen(false)
         fetchUsuarios()
         showToast('Usuario eliminado de forma permanente.')
+      } else {
+        showToast('Error al eliminar usuario.', 'error')
       }
     } else {
+      // Los miembros envían solicitud de autorización
       if (!deleteObservation) { setDeleteError('La justificación es obligatoria.'); return; }
       const { error } = await supabase.from('solicitudes_cambio').insert([{
         solicitante: user?.name || 'Administrador',
@@ -158,7 +160,7 @@ export default function AdminPage() {
     setIsLoadingSolicitudes(true)
     let query = supabase.from('solicitudes_cambio').select('*').order('creado_at', { ascending: false })
     
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       query = query.eq('solicitante', user?.name)
     }
 
@@ -206,10 +208,9 @@ export default function AdminPage() {
     }
   }
 
-  // --- LÓGICA DE RECHAZO CON MOTIVO ---
   const handleRechazarSolicitud = async (solicitud: any) => {
     const motivo = window.prompt('¿Cuál es el motivo del rechazo? (El administrador lo verá en su bandeja)')
-    if (motivo === null) return // Si le da a cancelar
+    if (motivo === null) return
 
     const firmaRechazo = `${user?.name || 'Administrador'}${motivo ? ` - Motivo: ${motivo}` : ''}`
 
@@ -235,8 +236,7 @@ export default function AdminPage() {
     return matchStatus && matchDept
   })
 
-  // --- CÁLCULO DE INSIGNIAS (NOTIFICACIONES EN LAS PESTAÑAS) ---
-  const pendingAuthCount = isSuperAdmin 
+  const pendingAuthCount = isAdmin 
     ? solicitudes.filter(s => s.estado === 'PENDIENTE').length 
     : solicitudes.filter(s => s.estado !== 'PENDIENTE' && s.solicitante === user?.name).length
 
@@ -272,7 +272,7 @@ export default function AdminPage() {
               ? 'Administración de perfiles y permisos de sistema.' 
               : activeTab === 'anuncios'
               ? 'Gestión de comunicados y alertas operativas.'
-              : isSuperAdmin ? 'Gobernanza central: revisión de solicitudes críticas del sistema.' : 'Historial de tus solicitudes enviadas a Gobernanza.'}
+              : isAdmin ? 'Gobernanza central: revisión de solicitudes críticas del sistema.' : 'Historial de tus solicitudes enviadas a Gobernanza.'}
           </p>
         </div>
         
@@ -292,18 +292,16 @@ export default function AdminPage() {
           Comunicados
         </button>
         
-        {/* PESTAÑA CON INSIGNIA DE NOTIFICACIÓN */}
         <button onClick={() => setActiveTab('autorizaciones')} className={`relative pb-3 text-sm font-bold border-b-2 transition-all flex items-center gap-2 ${activeTab === 'autorizaciones' ? 'border-exodus-500 text-exodus-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}>
           Autorizaciones
           {pendingAuthCount > 0 && (
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${isSuperAdmin ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold text-white ${isAdmin ? 'bg-red-500 animate-pulse' : 'bg-emerald-500'}`}>
               {pendingAuthCount}
             </span>
           )}
         </button>
       </div>
 
-      {/* VISTA USUARIOS */}
       {activeTab === 'usuarios' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -340,7 +338,7 @@ export default function AdminPage() {
                     </td>
                     <td className="p-4 text-right">
                       <button onClick={() => { setEditingUser(u); setIsUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-slate-600 hover:text-exodus-600 border border-transparent hover:border-slate-200 rounded-lg transition-all mr-2">Editar</button>
-                      <button onClick={() => { setUserToDelete(u); setDeletePassword(''); setDeleteObservation(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-lg transition-all">Eliminar</button>
+                      <button onClick={() => { setUserToDelete(u); setDeleteObservation(''); setDeleteError(''); setIsDeleteUserModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold text-red-500 hover:bg-red-50 hover:border-red-200 border border-transparent rounded-lg transition-all">Eliminar</button>
                     </td>
                   </tr>
                 ))}
@@ -350,7 +348,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* VISTA ANUNCIOS */}
       {activeTab === 'anuncios' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="glass rounded-3xl overflow-hidden border border-white/20 shadow-xl shadow-slate-200/40">
@@ -381,7 +378,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* VISTA AUTORIZACIONES */}
       {activeTab === 'autorizaciones' && (
         <div className="space-y-4 animate-in fade-in">
           <div className="flex flex-col sm:flex-row gap-4 justify-between">
@@ -393,7 +389,7 @@ export default function AdminPage() {
               ))}
             </div>
             
-            {isSuperAdmin && (
+            {isAdmin && (
               <div className="flex gap-1 bg-slate-200/50 p-1 rounded-xl w-fit">
                 {['TODOS', 'CAE', 'TI'].map((tab) => (
                   <button key={tab} onClick={() => setAuthDeptFilter(tab as any)} className={`px-4 py-1.5 rounded-lg text-sm font-bold ${authDeptFilter === tab ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500'}`}>{tab}</button>
@@ -431,15 +427,14 @@ export default function AdminPage() {
                         {s.departamento !== 'TODOS' && <span className="ml-2 text-[10px] text-slate-500 font-bold border border-slate-200 px-1.5 rounded">{s.departamento}</span>}
                         {s.tipo_solicitud === 'VER_PASSWORD' && (
                           <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-100">
-                             PRIORIDAD ALTA
+                              PRIORIDAD ALTA
                           </div>
                         )}
                       </td>
                       <td className="p-4 text-sm text-slate-600 font-medium max-w-xs">
                         <div className="truncate">{s.observacion || 'Sin justificación provista'}</div>
                         
-                        {/* VISUALIZACIÓN DE CONTRASEÑA */}
-                        {!isSuperAdmin && s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
+                        {!isAdmin && s.estado === 'APROBADO' && s.tipo_solicitud === 'VER_PASSWORD' && (
                           <div className="mt-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-xs">
                             <span className="font-bold text-emerald-800">Credencial de {s.informacion_cambio?.name}: </span>
                             <code className="bg-white px-2 py-1 rounded border text-emerald-700 font-mono font-bold tracking-widest">{s.informacion_cambio?.password}</code>
@@ -448,7 +443,7 @@ export default function AdminPage() {
                       </td>
                       <td className="p-4 text-right">
                         {s.estado === 'PENDIENTE' ? (
-                          isSuperAdmin ? (
+                          isAdmin ? (
                             <div className="flex justify-end gap-2">
                               <button onClick={() => handleAprobarSolicitud(s)} className="px-3 py-1.5 bg-slate-800 text-white font-bold text-xs rounded-lg hover:bg-slate-900 transition-colors shadow-sm">Aprobar</button>
                               <button onClick={() => handleRechazarSolicitud(s)} className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 font-bold text-xs rounded-lg hover:bg-slate-50 transition-colors">Rechazar</button>
@@ -472,7 +467,6 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* --- MODALES --- */}
       <Modal isOpen={isUserModalOpen} onClose={() => setIsUserModalOpen(false)} title={editingUser ? "Editar Perfil" : "Nuevo Perfil"}>
         <AdminUserForm 
           initialData={editingUser} 
@@ -495,15 +489,12 @@ export default function AdminPage() {
       <Modal isOpen={isDeleteUserModalOpen} onClose={() => setIsDeleteUserModalOpen(false)} title={`Eliminar cuenta: ${userToDelete?.name}`}>
         <form onSubmit={executeDeleteUser} className="text-left py-4 space-y-4">
           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600 mb-4">
-            Estás a punto de solicitar la eliminación del sistema para este usuario. Esta acción es irreversible tras su aprobación.
+            {isAdmin 
+              ? '¿Estás seguro de que deseas eliminar permanentemente a este usuario? Esta acción no se puede deshacer.' 
+              : 'Estás a punto de solicitar la eliminación del sistema para este usuario. Esta acción requiere aprobación.'}
           </div>
           
-          {isSuperAdmin ? (
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Contraseña de Seguridad</label>
-              <input type="password" placeholder="Requerida para acción directa" value={deletePassword} onChange={(e) => {setDeletePassword(e.target.value); setDeleteError('');}} className="w-full px-4 py-3 tracking-widest rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none" autoFocus />
-            </div>
-          ) : (
+          {!isAdmin && (
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Justificación del cambio</label>
               <textarea placeholder="Ej: El usuario ya no labora en la empresa..." value={deleteObservation} onChange={(e) => {setDeleteObservation(e.target.value); setDeleteError('');}} className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-slate-500/20 outline-none" rows={3} autoFocus />
@@ -514,12 +505,11 @@ export default function AdminPage() {
           
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="secondary" className="flex-1" onClick={() => setIsDeleteUserModalOpen(false)}>Cancelar</Button>
-            <Button type="submit" className="flex-1 bg-slate-800 hover:bg-slate-900 text-white">{isSuperAdmin ? 'Eliminar Definitivo' : 'Enviar Solicitud'}</Button>
+            <Button type="submit" className="flex-1 bg-slate-800 hover:bg-slate-900 text-white">{isAdmin ? 'Eliminar Definitivo' : 'Enviar Solicitud'}</Button>
           </div>
         </form>
       </Modal>
 
-      {/* NUEVO MODAL: Pedir ver contraseña (Viene del Ojito) */}
       <Modal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} title="Solicitar Ver Credenciales">
         <form onSubmit={executeRequestPassword} className="text-left py-4 space-y-4">
           <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 text-sm text-blue-700 mb-4">
