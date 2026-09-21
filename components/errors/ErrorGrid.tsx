@@ -12,7 +12,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const [selectedError, setSelectedError] = useState<any | null>(null)
   const [isConfirming, setIsConfirming] = useState(false)
   
-  const [deletePassword, setDeletePassword] = useState('')
   const [deleteObservation, setDeleteObservation] = useState('')
   const [actionError, setActionError] = useState('')
   const [actionSuccess, setActionSuccess] = useState('')
@@ -50,20 +49,16 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
     setActionSuccess('')
 
     if (isSuperAdmin) {
-      if (deletePassword === 'isAdmin02') { 
-        if (selectedError) {
-          await supabase.from('audit_logs').insert([{
-            accion: 'ELIMINADO',
-            ticket_titulo: selectedError.title,
-            usuario: user?.name || 'Desconocido',
-            departamento: user?.department || 'CAE'
-          }]);
-        }
-        onDelete(selectedError.id);
-        handleCloseModal();
-      } else {
-        setActionError('Contraseña incorrecta');
+      if (selectedError) {
+        await supabase.from('audit_logs').insert([{
+          accion: 'ELIMINADO',
+          ticket_titulo: selectedError.title,
+          usuario: user?.name || 'Desconocido',
+          departamento: user?.department || 'CAE'
+        }]);
       }
+      onDelete(selectedError.id);
+      handleCloseModal();
     } else {
       if (!deleteObservation.trim()) {
         setActionError('La justificación es obligatoria.');
@@ -94,7 +89,6 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
   const handleCloseModal = () => {
     setSelectedError(null);
     setIsConfirming(false);
-    setDeletePassword('');
     setDeleteObservation('');
     setActionError('');
     setActionSuccess('');
@@ -249,12 +243,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
           <div className="p-6 text-center space-y-4">
             <h3 className="text-xl font-bold text-slate-800">¿Estás seguro?</h3>
             {isSuperAdmin ? (
-              <>
-                <p className="text-sm text-slate-500">Ingresa la contraseña maestra para eliminar este ticket permanentemente.</p>
-                <div className="max-w-xs mx-auto mt-4">
-                  <input type="password" placeholder="Contraseña..." value={deletePassword} onChange={(e) => { setDeletePassword(e.target.value); setActionError(''); setActionSuccess(''); }} className={`w-full px-4 py-3 rounded-xl border bg-slate-50 text-center tracking-widest focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all ${actionError ? 'border-red-500' : 'border-slate-200'}`} />
-                </div>
-              </>
+              <p className="text-sm text-slate-500">Estás a punto de eliminar este ticket permanentemente.</p>
             ) : (
               <>
                 <p className="text-sm text-slate-500">Por seguridad, la eliminación requiere autorización de Gobernanza de TI.</p>
@@ -270,7 +259,7 @@ export function ErrorGrid({ errors, onDelete, onEdit, searchTerm = '' }: any) {
             <div className="flex gap-3 justify-center mt-6">
               {actionSuccess ? null : (
                 <>
-                  <Button variant="secondary" onClick={() => { setIsConfirming(false); setDeletePassword(''); setActionError(''); setDeleteObservation(''); }}>Cancelar</Button>
+                  <Button variant="secondary" onClick={() => { setIsConfirming(false); setActionError(''); setDeleteObservation(''); }}>Cancelar</Button>
                   <Button className="bg-red-600 hover:bg-red-700" onClick={handleConfirmDelete}>{isSuperAdmin ? 'Sí, borrar' : 'Enviar Solicitud'}</Button>
                 </>
               )}
